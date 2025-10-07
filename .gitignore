@@ -1,0 +1,21 @@
+# Backend
+backend/venv/
+backend/.env
+backend/__pycache__/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Database
+database/*.sql
+!database/schema.sql
+
+# Documentation
+docs/*.docx
+!docs/README.md
+
+# OS
+.DS_Store
+Thumbs.db
