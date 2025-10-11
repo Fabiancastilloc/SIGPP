@@ -1,155 +1,103 @@
 <template>
-  <div class="dashboard">
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <h2>SIGPP</h2>
+  <div class="projects-view">
+    <div class="projects-header">
+      <div>
+        <h1 class="page-title">Mis Proyectos</h1>
+        <p class="page-subtitle">Gestiona y monitorea tus proyectos de grado</p>
       </div>
-      <div class="navbar-menu">
-        <span>{{ authStore.user?.nombre_completo }}</span>
-        <span class="badge">{{ authStore.user?.rol }}</span>
-        <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
-      </div>
-    </nav>
 
-    <div class="sidebar">
-      <router-link to="/dashboard" class="menu-item">
-        <span>📊</span> Dashboard
-      </router-link>
-      <router-link to="/projects" class="menu-item active">
-        <span>📁</span> Proyectos
-      </router-link>
-      <router-link to="/expenses" class="menu-item">
-        <span>💰</span> Gastos
-      </router-link>
-    </div>
-
-    <div class="main-content">
-      <div class="container">
-        <div class="header-actions">
-          <h1>Mis Proyectos</h1>
-          <router-link v-if="authStore.isEstudiante" to="/projects/create" class="btn btn-primary">
-            + Crear Proyecto
-          </router-link>
-        </div>
-
-        <div class="filters">
-          <select v-model="estadoFilter" @change="loadProjects" class="form-control">
-            <option value="">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="pendiente_validacion">Pendiente Validación</option>
-            <option value="validado_asesor">Validado Asesor</option>
-            <option value="activo">Activo</option>
-            <option value="rechazado">Rechazado</option>
-            <option value="finalizado">Finalizado</option>
-          </select>
-        </div>
-
-        <div v-if="loading" class="loading">Cargando proyectos...</div>
-
-        <div v-else-if="projects.length === 0" class="empty-state">
-          <p>📁 No tienes proyectos registrados</p>
-          <router-link v-if="authStore.isEstudiante" to="/projects/create" class="btn btn-primary">
-            Crear mi primer proyecto
-          </router-link>
-        </div>
-
-        <div v-else class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Estado</th>
-                <th>Presupuesto Asignado</th>
-                <th>Presupuesto Ejecutado</th>
-                <th>Fecha Creación</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="project in projects" :key="project.id">
-                <td>{{ project.codigo_proyecto }}</td>
-                <td>{{ project.nombre }}</td>
-                <td>
-                  <span :class="getEstadoBadgeClass(project.estado)">
-                    {{ formatEstado(project.estado) }}
-                  </span>
-                </td>
-                <td>${{ formatNumber(project.presupuesto_asignado || 0) }}</td>
-                <td>${{ formatNumber(project.presupuesto_ejecutado) }}</td>
-                <td>{{ formatDate(project.fecha_creacion) }}</td>
-                <td>
-                  <button @click="viewProject(project.id)" class="btn-icon" title="Ver detalles">
-                    👁️
-                  </button>
-                  <button v-if="project.estado === 'borrador' && authStore.isEstudiante"
-                    @click="deleteProject(project.id)" class="btn-icon btn-danger" title="Eliminar">
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="header-actions">
+        <button @click="exportarPDF" class="btn btn-secondary">
+          <span>📄</span> PDF
+        </button>
+        <button @click="exportarExcel" class="btn btn-secondary">
+          <span>📊</span> Excel
+        </button>
+        <router-link to="/proyectos/crear" class="btn btn-primary">
+          <span>➕</span> Nuevo Proyecto
+        </router-link>
       </div>
     </div>
 
-    <!-- Modal de detalles del proyecto -->
-    <div v-if="selectedProject" class="modal" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>{{ selectedProject.nombre }}</h2>
-          <button @click="closeModal" class="close-btn">×</button>
+    <div class="filters-card">
+      <div class="filter-group">
+        <label>Estado</label>
+        <select v-model="filtroEstado" class="input">
+          <option value="">Todos</option>
+          <option value="borrador">Borrador</option>
+          <option value="pendiente_validacion">Pendiente</option>
+          <option value="validado_asesor">Validado</option>
+          <option value="activo">Activo</option>
+          <option value="rechazado">Rechazado</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Buscar</label>
+        <input v-model="busqueda" type="text" class="input" placeholder="Nombre o código..." />
+      </div>
+    </div>
+
+    <loading-spinner v-if="loading" />
+
+    <div v-else-if="proyectosFiltrados.length === 0" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <h3>{{ filtroEstado || busqueda ? 'No se encontraron proyectos' : 'No tienes proyectos' }}</h3>
+      <p>{{ filtroEstado || busqueda ? 'Intenta cambiar los filtros' : 'Crea tu primer proyecto' }}</p>
+      <router-link v-if="!filtroEstado && !busqueda" to="/proyectos/crear" class="btn btn-primary">
+        Crear Primer Proyecto
+      </router-link>
+    </div>
+
+    <div v-else class="projects-grid">
+      <div v-for="proyecto in proyectosFiltrados" :key="proyecto.id" class="project-card">
+        <div class="project-header">
+          <div class="project-icon">📋</div>
+          <ProjectStatusBadge :estado="proyecto.estado" />
         </div>
-        <div class="modal-body">
-          <div class="detail-row">
-            <strong>Código:</strong>
-            <span>{{ selectedProject.codigo_proyecto }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Estado:</strong>
-            <span :class="getEstadoBadgeClass(selectedProject.estado)">
-              {{ formatEstado(selectedProject.estado) }}
-            </span>
-          </div>
-          <div class="detail-row">
-            <strong>Descripción:</strong>
-            <p>{{ selectedProject.descripcion }}</p>
-          </div>
-          <div class="detail-row">
-            <strong>Objetivos:</strong>
-            <p>{{ selectedProject.objetivos }}</p>
-          </div>
-          <div class="detail-row">
-            <strong>Presupuesto Estimado:</strong>
-            <span>${{ formatNumber(selectedProject.presupuesto_estimado) }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Presupuesto Asignado:</strong>
-            <span>${{ formatNumber(selectedProject.presupuesto_asignado || 0) }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Presupuesto Ejecutado:</strong>
-            <span>${{ formatNumber(selectedProject.presupuesto_ejecutado) }}</span>
+
+        <div class="project-content">
+          <h3 class="project-title">{{ proyecto.nombre }}</h3>
+          <p class="project-code">{{ proyecto.codigo_proyecto }}</p>
+          <p class="project-description">{{ truncateText(proyecto.descripcion, 100) }}</p>
+
+          <div class="budget-summary">
+            <div class="budget-item">
+              <span class="budget-label">Estimado</span>
+              <span class="budget-value">${{ formatMoney(proyecto.presupuesto_estimado) }}</span>
+            </div>
+            <div class="budget-divider"></div>
+            <div class="budget-item">
+              <span class="budget-label">Ejecutado</span>
+              <span class="budget-value">${{ formatMoney(proyecto.presupuesto_ejecutado) }}</span>
+            </div>
           </div>
 
-          <h3>Items de Presupuesto</h3>
-          <table class="table-small">
-            <thead>
-              <tr>
-                <th>Concepto</th>
-                <th>Justificación</th>
-                <th>Costo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in selectedProject.items_presupuesto" :key="item.id">
-                <td>{{ item.concepto }}</td>
-                <td>{{ item.justificacion }}</td>
-                <td>${{ formatNumber(item.costo) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="progress-container">
+            <div class="progress-info">
+              <span class="progress-label">Progreso</span>
+              <span class="progress-percentage">{{ calcularProgreso(proyecto) }}%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" :style="{ width: calcularProgreso(proyecto) + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-actions">
+          <button @click="verDetalles(proyecto.id)" class="btn-action btn-primary">
+            <span>👁️</span> Ver
+          </button>
+
+          <button v-if="puedeEditar(proyecto.estado)" @click="editarProyecto(proyecto.id)"
+            class="btn-action btn-secondary">
+            <span>✏️</span> Editar
+          </button>
+
+          <button v-if="proyecto.estado === 'borrador'" @click="enviarValidacion(proyecto.id)"
+            class="btn-action btn-success">
+            <span>📤</span> Enviar
+          </button>
         </div>
       </div>
     </div>
@@ -157,368 +105,382 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { projectService } from '@/services/projectService'
+import { reportService } from '@/services/reportService'
+import ProjectStatusBadge from '@/components/project/ProjectStatusBadge.vue'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const proyectos = ref([])
+const loading = ref(false)
+const filtroEstado = ref('')
+const busqueda = ref('')
 
-const projects = ref([])
-const selectedProject = ref(null)
-const loading = ref(true)
-const estadoFilter = ref('')
+const proyectosFiltrados = computed(() => {
+  let filtered = proyectos.value
 
-const loadProjects = async () => {
-  loading.value = true
+  if (filtroEstado.value) {
+    filtered = filtered.filter(p => p.estado === filtroEstado.value)
+  }
+
+  if (busqueda.value) {
+    const search = busqueda.value.toLowerCase()
+    filtered = filtered.filter(p =>
+      p.nombre.toLowerCase().includes(search) ||
+      p.codigo_proyecto.toLowerCase().includes(search)
+    )
+  }
+
+  return filtered
+})
+
+onMounted(async () => {
+  await cargarProyectos()
+})
+
+const cargarProyectos = async () => {
   try {
-    const params = estadoFilter.value ? { estado: estadoFilter.value } : {}
-    projects.value = await projectService.getAll(params)
+    loading.value = true
+    proyectos.value = await projectService.getAll()
   } catch (error) {
-    console.error('Error al cargar proyectos:', error)
+    console.error('Error:', error)
+    alert('Error al cargar proyectos')
   } finally {
     loading.value = false
   }
 }
 
-const viewProject = async (id) => {
+const puedeEditar = (estado) => {
+  return estado === 'borrador' || estado === 'rechazado'
+}
+
+const calcularProgreso = (proyecto) => {
+  if (!proyecto.presupuesto_estimado) return 0
+  const progreso = (proyecto.presupuesto_ejecutado / proyecto.presupuesto_estimado) * 100
+  return Math.min(Math.round(progreso), 100)
+}
+
+const truncateText = (text, maxLength) => {
+  if (!text) return ''
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+}
+
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('es-CO').format(value)
+}
+
+const verDetalles = (id) => {
+  router.push(`/proyectos/${id}`)
+}
+
+const editarProyecto = (id) => {
+  router.push(`/proyectos/${id}/editar`)
+}
+
+const enviarValidacion = async (id) => {
+  if (!confirm('¿Enviar proyecto a validación?')) return
+
   try {
-    selectedProject.value = await projectService.getById(id)
+    await projectService.updateStatus(id, 'pendiente_validacion')
+    alert('✅ Proyecto enviado')
+    await cargarProyectos()
   } catch (error) {
-    console.error('Error al cargar proyecto:', error)
+    alert('❌ Error al enviar')
   }
 }
 
-const closeModal = () => {
-  selectedProject.value = null
-}
-
-const deleteProject = async (id) => {
-  if (confirm('¿Estás seguro de eliminar este proyecto?')) {
-    try {
-      await projectService.delete(id)
-      loadProjects()
-    } catch (error) {
-      alert('Error al eliminar proyecto')
-    }
+const exportarPDF = async () => {
+  try {
+    await reportService.exportProyectosPDF(filtroEstado.value || null)
+  } catch (error) {
+    alert('Error al exportar')
   }
 }
 
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('es-CO').format(num)
-}
-
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('es-CO')
-}
-
-const formatEstado = (estado) => {
-  const estados = {
-    'borrador': 'Borrador',
-    'pendiente_validacion': 'Pendiente Validación',
-    'validado_asesor': 'Validado Asesor',
-    'activo': 'Activo',
-    'rechazado': 'Rechazado',
-    'finalizado': 'Finalizado'
+const exportarExcel = async () => {
+  try {
+    await reportService.exportProyectosExcel(filtroEstado.value || null)
+  } catch (error) {
+    alert('Error al exportar')
   }
-  return estados[estado] || estado
 }
-
-const getEstadoBadgeClass = (estado) => {
-  const classes = {
-    'borrador': 'badge badge-secondary',
-    'pendiente_validacion': 'badge badge-warning',
-    'validado_asesor': 'badge badge-info',
-    'activo': 'badge badge-success',
-    'rechazado': 'badge badge-danger',
-    'finalizado': 'badge badge-primary'
-  }
-  return classes[estado] || 'badge'
-}
-
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
-
-onMounted(() => {
-  loadProjects()
-})
 </script>
 
 <style scoped>
-.dashboard {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
-}
-
-.navbar {
-  background: white;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-}
-
-.navbar-brand h2 {
-  color: #667eea;
-  margin: 0;
-}
-
-.navbar-menu {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.badge {
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.badge-success {
-  background-color: #28a745;
-}
-
-.badge-warning {
-  background-color: #ffc107;
-  color: #333;
-}
-
-.badge-danger {
-  background-color: #dc3545;
-}
-
-.badge-info {
-  background-color: #17a2b8;
-}
-
-.badge-secondary {
-  background-color: #6c757d;
-}
-
-.badge-primary {
-  background-color: #007bff;
-}
-
-.btn-logout {
-  background-color: #dc3545;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 60px;
-  bottom: 0;
-  width: 220px;
-  background: white;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  padding-top: 20px;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 20px;
-  text-decoration: none;
-  color: #333;
-  transition: all 0.3s;
-}
-
-.menu-item:hover {
-  background-color: #f0f0f0;
-}
-
-.menu-item.active {
-  background-color: #667eea;
-  color: white;
-}
-
-.main-content {
-  margin-left: 220px;
-  margin-top: 60px;
-  padding: 40px 20px;
-}
-
-.container {
+.projects-view {
+  padding: var(--space-8);
   max-width: 1400px;
   margin: 0 auto;
+  animation: fadeIn 0.5s ease;
+}
+
+.projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-8);
+  gap: var(--space-6);
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: var(--space-2);
+}
+
+.page-subtitle {
+  color: var(--gray-600);
+  font-size: 1rem;
 }
 
 .header-actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  gap: var(--space-3);
 }
 
-.filters {
-  margin-bottom: 20px;
-}
-
-.form-control {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-  max-width: 300px;
-}
-
-.table-container {
+.filters-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-4);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.table th {
-  background-color: #667eea;
-  color: white;
+.filter-group label {
+  display: block;
+  font-size: 0.875rem;
   font-weight: 600;
-}
-
-.table tr:hover {
-  background-color: #f5f5f5;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  margin: 0 5px;
-}
-
-.btn-icon:hover {
-  transform: scale(1.2);
+  color: var(--gray-700);
+  margin-bottom: var(--space-2);
 }
 
 .empty-state {
-  text-align: center;
-  padding: 60px 20px;
   background: white;
-  border-radius: 8px;
-}
-
-.loading {
+  border-radius: var(--radius-xl);
+  padding: var(--space-16) var(--space-8);
   text-align: center;
-  padding: 50px;
-  font-size: 18px;
-  color: #666;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
 }
 
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+.empty-icon {
+  font-size: 5rem;
+  margin-bottom: var(--space-6);
+  opacity: 0.5;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--space-6);
+}
+
+.project-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+  transition: all var(--transition-base);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
+  flex-direction: column;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 10px;
-  max-width: 800px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+.project-card:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-6px);
 }
 
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
+.project-header {
+  padding: var(--space-5);
+  background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--gray-100);
 }
 
-.close-btn {
-  background: none;
+.project-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.project-content {
+  padding: var(--space-6);
+  flex: 1;
+}
+
+.project-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: var(--space-2);
+  line-height: 1.4;
+}
+
+.project-code {
+  font-size: 0.8125rem;
+  color: var(--gray-500);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+}
+
+.project-description {
+  font-size: 0.9375rem;
+  color: var(--gray-600);
+  line-height: 1.6;
+  margin-bottom: var(--space-6);
+}
+
+.budget-summary {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+}
+
+.budget-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.budget-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.budget-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.budget-divider {
+  width: 1px;
+  background: var(--gray-200);
+}
+
+.progress-container {
+  margin-bottom: var(--space-4);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.progress-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 600;
+}
+
+.progress-percentage {
+  font-size: 0.875rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--gradient-blue);
+  border-radius: var(--radius-full);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-actions {
+  padding: var(--space-4) var(--space-6);
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-100);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btn-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: none;
-  font-size: 32px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
-  color: #999;
+  transition: all var(--transition-base);
 }
 
-.modal-body {
-  padding: 20px;
+.btn-action.btn-primary {
+  background: var(--primary);
+  color: white;
 }
 
-.detail-row {
-  margin-bottom: 15px;
+.btn-action.btn-secondary {
+  background: white;
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
 }
 
-.detail-row strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #667eea;
+.btn-action.btn-success {
+  background: var(--success);
+  color: white;
 }
 
-.table-small {
-  width: 100%;
-  margin-top: 10px;
-  border-collapse: collapse;
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.table-small th,
-.table-small td {
-  padding: 8px;
-  border: 1px solid #ddd;
-  font-size: 14px;
+@media (max-width: 1024px) {
+  .projects-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
 }
 
-.table-small th {
-  background-color: #f0f0f0;
+@media (max-width: 768px) {
+  .projects-view {
+    padding: var(--space-4);
+  }
+
+  .projects-header {
+    flex-direction: column;
+  }
+
+  .filters-card {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

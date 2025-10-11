@@ -1,64 +1,120 @@
 <template>
-  <div class="dashboard">
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <h2>SIGPP</h2>
+  <div class="expenses-view">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Mis Gastos</h1>
+        <p class="page-subtitle">Gestiona los gastos de tus proyectos</p>
       </div>
-      <div class="navbar-menu">
-        <span>{{ authStore.user?.nombre_completo }}</span>
-        <span class="badge">{{ authStore.user?.rol }}</span>
-        <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
+      <div class="header-actions">
+        <notification-center />
+        <button @click="mostrarModalRegistro = true" class="btn btn-primary">
+          ➕ Registrar Gasto
+        </button>
       </div>
-    </nav>
-
-    <div class="sidebar">
-      <router-link to="/dashboard" class="menu-item">
-        <span>📊</span> Dashboard
-      </router-link>
-      <router-link to="/projects" class="menu-item">
-        <span>📁</span> Proyectos
-      </router-link>
-      <router-link to="/expenses" class="menu-item active">
-        <span>💰</span> Gastos
-      </router-link>
     </div>
 
-    <div class="main-content">
-      <div class="container">
-        <div class="header-actions">
-          <h1>Gestión de Gastos</h1>
-          <button v-if="authStore.isEstudiante" @click="showCreateModal = true" class="btn btn-primary">
-            + Registrar Gasto
+    <loading-spinner v-if="loading" />
+
+    <div v-else class="expenses-content">
+      <!-- Estadísticas -->
+      <div class="stats-grid">
+        <div class="stat-card card-primary">
+          <div class="stat-icon">💰</div>
+          <div class="stat-info">
+            <p class="stat-label">Total Gastos</p>
+            <h3 class="stat-value">${{ formatMoney(totalGastos) }}</h3>
+            <p class="stat-change">{{ gastos.length }} registros</p>
+          </div>
+        </div>
+
+        <div class="stat-card card-warning">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-info">
+            <p class="stat-label">Pendientes</p>
+            <h3 class="stat-value">{{ gastosPendientes }}</h3>
+            <p class="stat-change">${{ formatMoney(montoPendientes) }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card card-success">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <p class="stat-label">Aprobados</p>
+            <h3 class="stat-value">{{ gastosAprobados }}</h3>
+            <p class="stat-change">${{ formatMoney(montoAprobados) }}</p>
+          </div>
+        </div>
+
+        <div class="stat-card card-danger">
+          <div class="stat-icon">❌</div>
+          <div class="stat-info">
+            <p class="stat-label">Rechazados</p>
+            <h3 class="stat-value">{{ gastosRechazados }}</h3>
+            <p class="stat-change">${{ formatMoney(montoRechazados) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filters-card">
+        <div class="filters-row">
+          <div class="filter-group">
+            <label>Proyecto</label>
+            <select v-model="filtros.proyecto_id" @change="aplicarFiltros" class="form-select">
+              <option value="">Todos los proyectos</option>
+              <option v-for="proyecto in proyectos" :key="proyecto.id" :value="proyecto.id">
+                {{ proyecto.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Estado</label>
+            <select v-model="filtros.estado" @change="aplicarFiltros" class="form-select">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="aprobado">Aprobados</option>
+              <option value="rechazado">Rechazados</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Buscar</label>
+            <input v-model="filtros.busqueda" type="text" placeholder="Buscar por concepto..." class="form-input"
+              @input="aplicarFiltros" />
+          </div>
+
+          <button @click="limpiarFiltros" class="btn btn-secondary">
+            🔄 Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Gastos -->
+      <div v-if="gastosFiltrados.length === 0" class="empty-state">
+        <span class="empty-icon">📭</span>
+        <h3>No se encontraron gastos</h3>
+        <p v-if="filtros.proyecto_id || filtros.estado || filtros.busqueda">
+          Intenta ajustar los filtros de búsqueda
+        </p>
+        <p v-else>
+          Aún no has registrado gastos. ¡Registra tu primer gasto!
+        </p>
+        <button @click="mostrarModalRegistro = true" class="btn btn-primary">
+          ➕ Registrar Gasto
+        </button>
+      </div>
+
+      <div v-else class="expenses-table-card">
+        <div class="table-header">
+          <h3>📋 Listado de Gastos</h3>
+          <button @click="exportarGastos" class="btn btn-sm btn-secondary">
+            📊 Exportar
           </button>
         </div>
 
-        <div class="filters">
-          <select v-model="projectFilter" @change="loadExpenses" class="form-control">
-            <option value="">Todos los proyectos</option>
-            <option v-for="project in projects" :key="project.id" :value="project.id">
-              {{ project.nombre }}
-            </option>
-          </select>
-
-          <select v-model="estadoFilter" @change="loadExpenses" class="form-control">
-            <option value="">Todos los estados</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="aprobado">Aprobado</option>
-            <option value="rechazado">Rechazado</option>
-          </select>
-        </div>
-
-        <div v-if="loading" class="loading">Cargando gastos...</div>
-
-        <div v-else-if="expenses.length === 0" class="empty-state">
-          <p>💰 No hay gastos registrados</p>
-          <button v-if="authStore.isEstudiante" @click="showCreateModal = true" class="btn btn-primary">
-            Registrar primer gasto
-          </button>
-        </div>
-
-        <div v-else class="table-container">
-          <table class="table">
+        <div class="table-wrapper">
+          <table class="expenses-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -67,36 +123,41 @@
                 <th>Monto</th>
                 <th>Estado</th>
                 <th>Fecha</th>
+                <th>Soporte</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="expense in expenses" :key="expense.id">
-                <td>{{ expense.id }}</td>
-                <td>{{ getProjectName(expense.proyecto_id) }}</td>
-                <td>{{ expense.concepto }}</td>
-                <td>${{ formatNumber(expense.monto) }}</td>
-                <td>
-                  <span :class="getEstadoBadgeClass(expense.estado)">
-                    {{ formatEstado(expense.estado) }}
+              <tr v-for="gasto in gastosFiltrados" :key="gasto.id">
+                <td class="cell-id">#{{ gasto.id }}</td>
+                <td class="cell-proyecto">
+                  <span class="proyecto-badge">{{ getProyectoNombre(gasto.proyecto_id) }}</span>
+                </td>
+                <td class="cell-concepto">{{ gasto.concepto }}</td>
+                <td class="cell-monto">${{ formatMoney(gasto.monto) }}</td>
+                <td class="cell-estado">
+                  <span class="status-badge" :class="`status-${gasto.estado}`">
+                    {{ formatEstado(gasto.estado) }}
                   </span>
                 </td>
-                <td>{{ formatDate(expense.creado_en) }}</td>
-                <td>
-                  <button @click="viewExpense(expense.id)" class="btn-icon" title="Ver detalles">
+                <td class="cell-fecha">{{ formatDate(gasto.creado_en) }}</td>
+                <td class="cell-soporte">
+                  <a v-if="gasto.soporte_url" :href="gasto.soporte_url" target="_blank" class="btn-link">
+                    📎 Ver
+                  </a>
+                  <span v-else class="text-muted">Sin soporte</span>
+                </td>
+                <td class="cell-actions">
+                  <button @click="verDetalle(gasto)" class="btn-icon" title="Ver detalle">
                     👁️
                   </button>
-                  <button v-if="expense.estado === 'pendiente' && authStore.isEstudiante"
-                    @click="deleteExpense(expense.id)" class="btn-icon btn-danger" title="Eliminar">
+                  <button v-if="gasto.estado === 'pendiente'" @click="editarGasto(gasto)" class="btn-icon edit"
+                    title="Editar">
+                    ✏️
+                  </button>
+                  <button v-if="gasto.estado === 'pendiente'" @click="eliminarGasto(gasto.id)" class="btn-icon delete"
+                    title="Eliminar">
                     🗑️
-                  </button>
-                  <button v-if="expense.estado === 'pendiente' && (authStore.isProfesor || authStore.isFinanciera)"
-                    @click="approveExpense(expense.id)" class="btn-icon btn-success" title="Aprobar">
-                    ✅
-                  </button>
-                  <button v-if="expense.estado === 'pendiente' && (authStore.isProfesor || authStore.isFinanciera)"
-                    @click="rejectExpense(expense.id)" class="btn-icon btn-danger" title="Rechazar">
-                    ❌
                   </button>
                 </td>
               </tr>
@@ -106,557 +167,947 @@
       </div>
     </div>
 
-    <!-- Modal para crear gasto -->
-    <div v-if="showCreateModal" class="modal" @click="closeCreateModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Registrar Nuevo Gasto</h2>
-          <button @click="closeCreateModal" class="close-btn">×</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="handleCreateExpense">
-            <div v-if="error" class="alert alert-error">{{ error }}</div>
+    <!-- Modal: Registrar/Editar Gasto -->
+    <modal-dialog v-if="mostrarModalRegistro" @close="cerrarModalRegistro">
+      <template #header>
+        <h2>{{ gastoEditando ? '✏️ Editar Gasto' : '➕ Registrar Nuevo Gasto' }}</h2>
+      </template>
 
-            <div class="form-group">
-              <label>Proyecto *</label>
-              <select v-model="expenseData.proyecto_id" class="form-control" required>
-                <option value="">Seleccione un proyecto</option>
-                <option v-for="project in activeProjects" :key="project.id" :value="project.id">
-                  {{ project.nombre }} (Disponible: ${{ formatNumber(project.presupuesto_asignado -
-                    project.presupuesto_ejecutado) }})
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Concepto *</label>
-              <input type="text" v-model="expenseData.concepto" class="form-control" placeholder="Describe el gasto"
-                required minlength="5" />
-            </div>
-
-            <div class="form-group">
-              <label>Monto (COP) *</label>
-              <input type="number" v-model="expenseData.monto" class="form-control" placeholder="0" required min="1" />
-            </div>
-
-            <div class="form-group">
-              <label>URL del Soporte (Factura/Comprobante) *</label>
-              <input type="url" v-model="expenseData.soporte_url" class="form-control"
-                placeholder="https://ejemplo.com/factura.pdf" required />
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="loadingCreate">
-                {{ loadingCreate ? 'Registrando...' : 'Registrar Gasto' }}
-              </button>
-              <button type="button" @click="closeCreateModal" class="btn btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal para ver detalles del gasto -->
-    <div v-if="selectedExpense" class="modal" @click="closeDetailModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Detalles del Gasto #{{ selectedExpense.id }}</h2>
-          <button @click="closeDetailModal" class="close-btn">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="detail-row">
-            <strong>Proyecto:</strong>
-            <span>{{ getProjectName(selectedExpense.proyecto_id) }}</span>
+      <template #body>
+        <form @submit.prevent="guardarGasto" class="expense-form">
+          <div class="form-group">
+            <label class="form-label">
+              Proyecto *
+              <span class="label-hint">Selecciona el proyecto al que pertenece este gasto</span>
+            </label>
+            <select v-model="formularioGasto.proyecto_id" class="form-select" required :disabled="gastoEditando">
+              <option value="">-- Selecciona un proyecto --</option>
+              <option v-for="proyecto in proyectosActivos" :key="proyecto.id" :value="proyecto.id">
+                {{ proyecto.nombre }} - Disponible: ${{ formatMoney(calcularDisponible(proyecto)) }}
+              </option>
+            </select>
           </div>
-          <div class="detail-row">
-            <strong>Concepto:</strong>
-            <span>{{ selectedExpense.concepto }}</span>
+
+          <div class="form-group">
+            <label class="form-label">
+              Concepto *
+              <span class="label-hint">Describe brevemente el gasto</span>
+            </label>
+            <input v-model="formularioGasto.concepto" type="text" class="form-input"
+              placeholder="Ej: Compra de materiales de laboratorio" required maxlength="200" />
           </div>
-          <div class="detail-row">
-            <strong>Monto:</strong>
-            <span>${{ formatNumber(selectedExpense.monto) }}</span>
+
+          <div class="form-group">
+            <label class="form-label">
+              Monto (COP) *
+              <span class="label-hint">Valor del gasto</span>
+            </label>
+            <div class="input-with-prefix">
+              <span class="input-prefix">$</span>
+              <input v-model.number="formularioGasto.monto" type="number" class="form-input" placeholder="0" required
+                min="1" step="100" />
+            </div>
+            <p v-if="presupuestoSeleccionado" class="form-hint">
+              💡 Disponible en proyecto: <strong>${{ formatMoney(presupuestoSeleccionado) }}</strong>
+            </p>
           </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              URL del Soporte *
+              <span class="label-hint">Enlace al documento de soporte (Google Drive, Dropbox, etc.)</span>
+            </label>
+            <input v-model="formularioGasto.soporte_url" type="url" class="form-input"
+              placeholder="https://drive.google.com/..." required />
+          </div>
+        </form>
+      </template>
+
+      <template #footer>
+        <button @click="cerrarModalRegistro" class="btn btn-secondary">
+          Cancelar
+        </button>
+        <button @click="guardarGasto" class="btn btn-primary" :disabled="enviandoGasto">
+          <span v-if="enviandoGasto">⏳ Guardando...</span>
+          <span v-else>{{ gastoEditando ? '💾 Actualizar' : '✅ Registrar' }}</span>
+        </button>
+      </template>
+    </modal-dialog>
+
+    <!-- Modal: Detalle del Gasto -->
+    <modal-dialog v-if="mostrarModalDetalle" @close="cerrarModalDetalle">
+      <template #header>
+        <h2>👁️ Detalle del Gasto #{{ gastoSeleccionado?.id }}</h2>
+      </template>
+
+      <template #body>
+        <div v-if="gastoSeleccionado" class="expense-detail">
           <div class="detail-row">
-            <strong>Estado:</strong>
-            <span :class="getEstadoBadgeClass(selectedExpense.estado)">
-              {{ formatEstado(selectedExpense.estado) }}
+            <span class="detail-label">Proyecto:</span>
+            <span class="detail-value">{{ getProyectoNombre(gastoSeleccionado.proyecto_id) }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Concepto:</span>
+            <span class="detail-value">{{ gastoSeleccionado.concepto }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Monto:</span>
+            <span class="detail-value amount">${{ formatMoney(gastoSeleccionado.monto) }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Estado:</span>
+            <span class="status-badge" :class="`status-${gastoSeleccionado.estado}`">
+              {{ formatEstado(gastoSeleccionado.estado) }}
             </span>
           </div>
+
           <div class="detail-row">
-            <strong>Fecha de Registro:</strong>
-            <span>{{ formatDate(selectedExpense.creado_en) }}</span>
+            <span class="detail-label">Fecha de Registro:</span>
+            <span class="detail-value">{{ formatDateLong(gastoSeleccionado.creado_en) }}</span>
           </div>
+
+          <div v-if="gastoSeleccionado.aprobado_en" class="detail-row">
+            <span class="detail-label">Fecha de Aprobación:</span>
+            <span class="detail-value">{{ formatDateLong(gastoSeleccionado.aprobado_en) }}</span>
+          </div>
+
+          <div v-if="gastoSeleccionado.comentarios" class="detail-row full">
+            <span class="detail-label">Comentarios:</span>
+            <div class="comment-box">
+              <p>{{ gastoSeleccionado.comentarios }}</p>
+            </div>
+          </div>
+
           <div class="detail-row">
-            <strong>Soporte:</strong>
-            <a :href="selectedExpense.soporte_url" target="_blank" class="link">Ver documento</a>
-          </div>
-          <div v-if="selectedExpense.comentarios" class="detail-row">
-            <strong>Comentarios:</strong>
-            <p>{{ selectedExpense.comentarios }}</p>
+            <span class="detail-label">Soporte:</span>
+            <a :href="gastoSeleccionado.soporte_url" target="_blank" class="btn-link">
+              📎 Ver Documento de Soporte
+            </a>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+
+      <template #footer>
+        <button @click="cerrarModalDetalle" class="btn btn-primary">
+          Cerrar
+        </button>
+      </template>
+    </modal-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { expenseService } from '@/services/expenseService'
+import { ref, computed, onMounted } from 'vue'
 import { projectService } from '@/services/projectService'
+import { expenseService } from '@/services/expenseService'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import NotificationCenter from '@/components/shared/NotificationCenter.vue'
+import ModalDialog from '@/components/shared/ModalDialog.vue'
 
-const router = useRouter()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 
-const expenses = ref([])
-const projects = ref([])
-const activeProjects = ref([])
-const selectedExpense = ref(null)
-const loading = ref(true)
-const loadingCreate = ref(false)
-const showCreateModal = ref(false)
-const projectFilter = ref('')
-const estadoFilter = ref('')
-const error = ref('')
+const loading = ref(false)
+const enviandoGasto = ref(false)
+const proyectos = ref([])
+const gastos = ref([])
+const mostrarModalRegistro = ref(false)
+const mostrarModalDetalle = ref(false)
+const gastoEditando = ref(null)
+const gastoSeleccionado = ref(null)
 
-const expenseData = ref({
+const filtros = ref({
+  proyecto_id: '',
+  estado: '',
+  busqueda: ''
+})
+
+const formularioGasto = ref({
   proyecto_id: '',
   concepto: '',
-  monto: '',
+  monto: 0,
   soporte_url: ''
 })
 
-const loadExpenses = async () => {
-  loading.value = true
-  try {
-    const params = {}
-    if (projectFilter.value) params.proyecto_id = projectFilter.value
-    if (estadoFilter.value) params.estado = estadoFilter.value
+// CORRECCIÓN: Filtrar solo proyectos activos del usuario actual
+const proyectosActivos = computed(() => {
+  const userId = authStore.user?.id
+  console.log('Usuario ID:', userId)
+  console.log('Todos los proyectos:', proyectos.value)
 
-    expenses.value = await expenseService.getAll(params)
+  const activos = proyectos.value.filter(p => {
+    const esActivo = p.estado === 'activo'
+    const esDelUsuario = p.estudiante_id === userId
+    console.log(`Proyecto ${p.id}: activo=${esActivo}, delUsuario=${esDelUsuario}`)
+    return esActivo && esDelUsuario
+  })
+
+  console.log('Proyectos activos filtrados:', activos)
+  return activos
+})
+
+const presupuestoSeleccionado = computed(() => {
+  if (!formularioGasto.value.proyecto_id) return 0
+  const proyecto = proyectos.value.find(p => p.id === parseInt(formularioGasto.value.proyecto_id))
+  if (!proyecto) return 0
+  return calcularDisponible(proyecto)
+})
+
+const gastosFiltrados = computed(() => {
+  let resultado = gastos.value
+
+  if (filtros.value.proyecto_id) {
+    resultado = resultado.filter(g => g.proyecto_id === parseInt(filtros.value.proyecto_id))
+  }
+
+  if (filtros.value.estado) {
+    resultado = resultado.filter(g => g.estado === filtros.value.estado)
+  }
+
+  if (filtros.value.busqueda) {
+    const busqueda = filtros.value.busqueda.toLowerCase()
+    resultado = resultado.filter(g =>
+      g.concepto.toLowerCase().includes(busqueda)
+    )
+  }
+
+  return resultado.sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en))
+})
+
+const totalGastos = computed(() => {
+  return gastos.value.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0)
+})
+
+const gastosPendientes = computed(() => {
+  return gastos.value.filter(g => g.estado === 'pendiente').length
+})
+
+const gastosAprobados = computed(() => {
+  return gastos.value.filter(g => g.estado === 'aprobado').length
+})
+
+const gastosRechazados = computed(() => {
+  return gastos.value.filter(g => g.estado === 'rechazado').length
+})
+
+const montoPendientes = computed(() => {
+  return gastos.value
+    .filter(g => g.estado === 'pendiente')
+    .reduce((sum, g) => sum + parseFloat(g.monto || 0), 0)
+})
+
+const montoAprobados = computed(() => {
+  return gastos.value
+    .filter(g => g.estado === 'aprobado')
+    .reduce((sum, g) => sum + parseFloat(g.monto || 0), 0)
+})
+
+const montoRechazados = computed(() => {
+  return gastos.value
+    .filter(g => g.estado === 'rechazado')
+    .reduce((sum, g) => sum + parseFloat(g.monto || 0), 0)
+})
+
+onMounted(async () => {
+  await cargarDatos()
+})
+
+const cargarDatos = async () => {
+  try {
+    loading.value = true
+
+    console.log('Cargando datos...')
+    console.log('Usuario actual:', authStore.user)
+
+    const [proyectosData, gastosData] = await Promise.all([
+      projectService.getAll(),
+      expenseService.getAll()
+    ])
+
+    proyectos.value = proyectosData
+    gastos.value = gastosData
+
+    console.log('Proyectos cargados:', proyectosData)
+    console.log('Gastos cargados:', gastosData)
+
+    if (proyectosActivos.value.length === 0) {
+      notifStore.addNotification({
+        tipo: 'warning',
+        titulo: 'Sin Proyectos Activos',
+        mensaje: 'No tienes proyectos activos. Debes tener un proyecto activo para registrar gastos.'
+      })
+    }
+
   } catch (error) {
-    console.error('Error al cargar gastos:', error)
+    console.error('Error al cargar datos:', error)
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: 'No se pudo cargar la información'
+    })
   } finally {
     loading.value = false
   }
 }
 
-const loadProjects = async () => {
-  try {
-    projects.value = await projectService.getAll()
-    activeProjects.value = projects.value.filter(p => p.estado === 'activo')
-  } catch (error) {
-    console.error('Error al cargar proyectos:', error)
+const aplicarFiltros = () => {
+  // Computed se encarga automáticamente
+}
+
+const limpiarFiltros = () => {
+  filtros.value = {
+    proyecto_id: '',
+    estado: '',
+    busqueda: ''
   }
 }
 
-const viewExpense = async (id) => {
-  try {
-    selectedExpense.value = await expenseService.getById(id)
-  } catch (error) {
-    console.error('Error al cargar gasto:', error)
-  }
-}
-
-const handleCreateExpense = async () => {
-  loadingCreate.value = true
-  error.value = ''
-
-  try {
-    await expenseService.create(expenseData.value)
-    closeCreateModal()
-    loadExpenses()
-  } catch (err) {
-    error.value = err.response?.data?.detail || 'Error al registrar gasto'
-  } finally {
-    loadingCreate.value = false
-  }
-}
-
-const approveExpense = async (id) => {
-  if (confirm('¿Aprobar este gasto?')) {
-    try {
-      await expenseService.approve(id, { estado: 'aprobado' })
-      loadExpenses()
-    } catch (error) {
-      alert('Error al aprobar gasto')
-    }
-  }
-}
-
-const rejectExpense = async (id) => {
-  const comentarios = prompt('Comentarios (opcional):')
-  try {
-    await expenseService.approve(id, { estado: 'rechazado', comentarios })
-    loadExpenses()
-  } catch (error) {
-    alert('Error al rechazar gasto')
-  }
-}
-
-const deleteExpense = async (id) => {
-  if (confirm('¿Eliminar este gasto?')) {
-    try {
-      await expenseService.delete(id)
-      loadExpenses()
-    } catch (error) {
-      alert('Error al eliminar gasto')
-    }
-  }
-}
-
-const closeCreateModal = () => {
-  showCreateModal.value = false
-  expenseData.value = {
+const cerrarModalRegistro = () => {
+  mostrarModalRegistro.value = false
+  gastoEditando.value = null
+  formularioGasto.value = {
     proyecto_id: '',
     concepto: '',
-    monto: '',
+    monto: 0,
     soporte_url: ''
   }
-  error.value = ''
 }
 
-const closeDetailModal = () => {
-  selectedExpense.value = null
+const guardarGasto = async () => {
+  // Validaciones
+  if (!formularioGasto.value.proyecto_id) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'Debes seleccionar un proyecto'
+    })
+    return
+  }
+
+  if (!formularioGasto.value.concepto.trim()) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'Debes especificar el concepto del gasto'
+    })
+    return
+  }
+
+  if (formularioGasto.value.monto <= 0) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Monto Inválido',
+      mensaje: 'El monto debe ser mayor a cero'
+    })
+    return
+  }
+
+  if (!formularioGasto.value.soporte_url.trim()) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'Debes proporcionar la URL del soporte'
+    })
+    return
+  }
+
+  // Validar presupuesto disponible
+  if (formularioGasto.value.monto > presupuestoSeleccionado.value) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Presupuesto Insuficiente',
+      mensaje: `El monto excede el presupuesto disponible ($${formatMoney(presupuestoSeleccionado.value)})`
+    })
+    return
+  }
+
+  try {
+    enviandoGasto.value = true
+
+    if (gastoEditando.value) {
+      // Actualizar gasto existente
+      await expenseService.update(gastoEditando.value.id, formularioGasto.value)
+      notifStore.addNotification({
+        tipo: 'success',
+        titulo: '✅ Gasto Actualizado',
+        mensaje: 'El gasto ha sido actualizado exitosamente'
+      })
+    } else {
+      // Crear nuevo gasto
+      const nuevoGasto = {
+        proyecto_id: parseInt(formularioGasto.value.proyecto_id),
+        concepto: formularioGasto.value.concepto.trim(),
+        monto: parseFloat(formularioGasto.value.monto),
+        soporte_url: formularioGasto.value.soporte_url.trim()
+      }
+
+      console.log('Enviando gasto:', nuevoGasto)
+
+      await expenseService.create(nuevoGasto)
+      notifStore.addNotification({
+        tipo: 'success',
+        titulo: '✅ Gasto Registrado',
+        mensaje: 'El gasto ha sido registrado y está pendiente de aprobación'
+      })
+    }
+
+    await cargarDatos()
+    cerrarModalRegistro()
+  } catch (error) {
+    console.error('Error al guardar gasto:', error)
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: error.response?.data?.detail || 'No se pudo guardar el gasto'
+    })
+  } finally {
+    enviandoGasto.value = false
+  }
 }
 
-const getProjectName = (projectId) => {
-  const project = projects.value.find(p => p.id === projectId)
-  return project ? project.nombre : `Proyecto #${projectId}`
+const editarGasto = (gasto) => {
+  gastoEditando.value = gasto
+  formularioGasto.value = {
+    proyecto_id: gasto.proyecto_id,
+    concepto: gasto.concepto,
+    monto: gasto.monto,
+    soporte_url: gasto.soporte_url
+  }
+  mostrarModalRegistro.value = true
 }
 
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('es-CO').format(num)
+const eliminarGasto = async (id) => {
+  const confirmacion = confirm('¿Estás seguro de eliminar este gasto? Esta acción no se puede deshacer.')
+  if (!confirmacion) return
+
+  try {
+    await expenseService.delete(id)
+    notifStore.addNotification({
+      tipo: 'success',
+      titulo: '🗑️ Gasto Eliminado',
+      mensaje: 'El gasto ha sido eliminado exitosamente'
+    })
+    await cargarDatos()
+  } catch (error) {
+    console.error('Error al eliminar gasto:', error)
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: 'No se pudo eliminar el gasto'
+    })
+  }
+}
+
+const verDetalle = (gasto) => {
+  gastoSeleccionado.value = gasto
+  mostrarModalDetalle.value = true
+}
+
+const cerrarModalDetalle = () => {
+  mostrarModalDetalle.value = false
+  gastoSeleccionado.value = null
+}
+
+const exportarGastos = () => {
+  notifStore.addNotification({
+    tipo: 'info',
+    titulo: '📊 Exportando',
+    mensaje: 'Generando reporte de gastos...'
+  })
+  console.log('Exportando gastos...')
+}
+
+const getProyectoNombre = (id) => {
+  const p = proyectos.value.find(x => x.id === id)
+  return p ? p.nombre : `Proyecto ${id}`
+}
+
+const calcularDisponible = (proyecto) => {
+  return (proyecto.presupuesto_asignado || 0) - proyecto.presupuesto_ejecutado
+}
+
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value || 0)
 }
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('es-CO')
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const formatDateLong = (date) => {
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const formatEstado = (estado) => {
   const estados = {
-    'pendiente': 'Pendiente',
-    'aprobado': 'Aprobado',
-    'rechazado': 'Rechazado'
+    pendiente: 'Pendiente',
+    aprobado: 'Aprobado',
+    rechazado: 'Rechazado'
   }
   return estados[estado] || estado
 }
-
-const getEstadoBadgeClass = (estado) => {
-  const classes = {
-    'pendiente': 'badge badge-warning',
-    'aprobado': 'badge badge-success',
-    'rechazado': 'badge badge-danger'
-  }
-  return classes[estado] || 'badge'
-}
-
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
-
-onMounted(() => {
-  loadProjects()
-  loadExpenses()
-})
 </script>
 
+
 <style scoped>
-.dashboard {
+.expenses-view {
+  padding: var(--space-8);
+  max-width: 1600px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
 }
 
-.navbar {
-  background: white;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
+  margin-bottom: var(--space-8);
 }
 
-.navbar-brand h2 {
-  color: #667eea;
-  margin: 0;
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--gray-900);
 }
 
-.navbar-menu {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.badge {
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.badge-success {
-  background-color: #28a745;
-}
-
-.badge-warning {
-  background-color: #ffc107;
-  color: #333;
-}
-
-.badge-danger {
-  background-color: #dc3545;
-}
-
-.btn-logout {
-  background-color: #dc3545;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 60px;
-  bottom: 0;
-  width: 220px;
-  background: white;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  padding-top: 20px;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 20px;
-  text-decoration: none;
-  color: #333;
-  transition: all 0.3s;
-}
-
-.menu-item:hover {
-  background-color: #f0f0f0;
-}
-
-.menu-item.active {
-  background-color: #667eea;
-  color: white;
-}
-
-.main-content {
-  margin-left: 220px;
-  margin-top: 60px;
-  padding: 40px 20px;
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
+.page-subtitle {
+  color: var(--gray-600);
+  margin-top: var(--space-2);
+  font-size: 1.125rem;
 }
 
 .header-actions {
   display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.stat-card {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  display: flex;
+  gap: var(--space-4);
+  border-left: 5px solid var(--primary);
+  transition: var(--transition-base);
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card.card-warning {
+  border-left-color: var(--warning);
+}
+
+.stat-card.card-success {
+  border-left-color: var(--success);
+}
+
+.stat-card.card-danger {
+  border-left-color: var(--error);
+}
+
+.stat-icon {
+  font-size: 3rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gray-900);
+}
+
+.stat-change {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 600;
+}
+
+.filters-card {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-8);
+}
+
+.filters-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--gray-700);
+}
+
+.expenses-table-card {
+  background: white;
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  padding: var(--space-6);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
 }
 
-.filters {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+.table-header h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
 }
 
-.form-control {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-.table-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.table-wrapper {
   overflow-x: auto;
 }
 
-.table {
+.expenses-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.table th,
-.table td {
-  padding: 12px;
+.expenses-table thead {
+  background: var(--gray-50);
+}
+
+.expenses-table th {
+  padding: var(--space-4);
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  font-weight: 800;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 3px solid var(--gray-200);
 }
 
-.table th {
-  background-color: #667eea;
-  color: white;
-  font-weight: 600;
+.expenses-table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 0.9375rem;
 }
 
-.table tr:hover {
-  background-color: #f5f5f5;
+.expenses-table tbody tr {
+  transition: var(--transition-base);
 }
 
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: none;
+.expenses-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.cell-id {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.cell-proyecto {
+  max-width: 200px;
+}
+
+.proyecto-badge {
   display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  background: var(--info-light);
+  color: var(--info);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-.btn-primary {
-  background-color: #007bff;
-  color: white;
+.cell-concepto {
+  max-width: 300px;
+  font-weight: 600;
 }
 
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
+.cell-monto {
+  font-weight: 900;
+  color: var(--success);
+  font-size: 1.125rem;
 }
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.status-pendiente {
+  background: var(--warning-light);
+  color: #92400e;
+}
+
+.status-aprobado {
+  background: var(--success-light);
+  color: #065f46;
+}
+
+.status-rechazado {
+  background: var(--error-light);
+  color: #991b1b;
+}
+
+.btn-link {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.cell-actions {
+  display: flex;
+  gap: var(--space-2);
 }
 
 .btn-icon {
-  background: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
   border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 18px;
-  margin: 0 5px;
+  transition: var(--transition-base);
+  font-size: 1.125rem;
 }
 
 .btn-icon:hover {
-  transform: scale(1.2);
+  background: var(--primary);
+  transform: scale(1.1);
+}
+
+.btn-icon.edit:hover {
+  background: var(--warning);
+}
+
+.btn-icon.delete:hover {
+  background: var(--error);
 }
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: var(--space-16);
   background: white;
-  border-radius: 8px;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-md);
 }
 
-.loading {
-  text-align: center;
-  padding: 50px;
-  font-size: 18px;
-  color: #666;
+.empty-icon {
+  font-size: 6rem;
+  margin-bottom: var(--space-6);
+  opacity: 0.4;
 }
 
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+.empty-state h3 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: var(--space-3);
+}
+
+.empty-state p {
+  color: var(--gray-600);
+  font-size: 1.125rem;
+  margin-bottom: var(--space-8);
+}
+
+/* Formulario */
+.expense-form {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 10px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 32px;
-  cursor: pointer;
-  color: #999;
-}
-
-.modal-body {
-  padding: 20px;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 .form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
-}
-
-.form-actions {
   display: flex;
-  gap: 15px;
-  justify-content: flex-end;
-  margin-top: 20px;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label-hint {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gray-500);
+}
+
+.form-input,
+.form-select {
+  padding: var(--space-4);
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  transition: var(--transition-base);
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.input-with-prefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  position: absolute;
+  left: var(--space-4);
+  font-weight: 700;
+  color: var(--gray-600);
+  font-size: 1.125rem;
+}
+
+.input-with-prefix .form-input {
+  padding-left: var(--space-10);
+}
+
+.form-hint {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-top: var(--space-2);
+}
+
+/* Detalle */
+.expense-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .detail-row {
-  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
 }
 
-.detail-row strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #667eea;
+.detail-row.full {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
 }
 
-.link {
-  color: #007bff;
-  text-decoration: none;
+.detail-label {
+  font-weight: 700;
+  color: var(--gray-700);
+  font-size: 0.9375rem;
 }
 
-.link:hover {
-  text-decoration: underline;
+.detail-value {
+  font-weight: 600;
+  color: var(--gray-900);
 }
 
-.alert {
-  padding: 15px;
-  border-radius: 5px;
-  margin-bottom: 20px;
+.detail-value.amount {
+  font-size: 1.5rem;
+  color: var(--success);
+  font-weight: 900;
 }
 
-.alert-error {
-  background-color: #f8d7da;
-  color: #721c24;
+.comment-box {
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--info-light);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-lg);
+  color: var(--gray-800);
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .expenses-view {
+    padding: var(--space-4);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrapper {
+    overflow-x: scroll;
+  }
 }
 </style>

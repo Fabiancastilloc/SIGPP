@@ -16,10 +16,31 @@ export const projectService = {
     return response.data;
   },
 
+  async update(id, projectData) {
+    const response = await api.put(`/projects/${id}`, projectData);
+    return response.data;
+  },
+
+  // CORREGIDO: Enviar estado como query parameter
   async updateStatus(id, estado) {
     const response = await api.patch(`/projects/${id}/estado`, null, {
       params: { nuevo_estado: estado },
     });
+    return response.data;
+  },
+
+  // NUEVO: Asignar presupuesto (Finanzas)
+  async asignarPresupuesto(id, presupuestoAsignado, comentarios = null) {
+    const response = await api.patch(
+      `/projects/${id}/asignar-presupuesto`,
+      null,
+      {
+        params: {
+          presupuesto_asignado: presupuestoAsignado,
+          comentarios: comentarios,
+        },
+      }
+    );
     return response.data;
   },
 

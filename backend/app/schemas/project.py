@@ -13,7 +13,7 @@ class BudgetItemResponse(BaseModel):
     concepto: str
     justificacion: str
     costo: Decimal
-    
+
     class Config:
         from_attributes = True
 
@@ -29,6 +29,7 @@ class ProjectUpdate(BaseModel):
     descripcion: Optional[str] = Field(None, min_length=20)
     objetivos: Optional[str] = Field(None, min_length=20)
     profesor_id: Optional[int] = None
+    items_presupuesto: Optional[List[BudgetItemCreate]] = None
 
 class ProjectResponse(BaseModel):
     id: int
@@ -39,7 +40,7 @@ class ProjectResponse(BaseModel):
     presupuesto_asignado: Optional[Decimal]
     presupuesto_ejecutado: Decimal
     fecha_creacion: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -50,6 +51,30 @@ class ProjectDetail(ProjectResponse):
     profesor_id: Optional[int]
     items_presupuesto: List[BudgetItemResponse]
     fecha_ultima_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProjectResponse(BaseModel):
+    id: int
+    codigo_proyecto: str
+    nombre: str
+    descripcion: str
+    objetivos: str
+    estado: str
+    presupuesto_estimado: Decimal
+    presupuesto_asignado: Optional[Decimal]
+    presupuesto_ejecutado: Decimal
+    estudiante_id: int  # IMPORTANTE: Debe estar aquí
+    profesor_id: Optional[int]
+    fecha_creacion: datetime
+    fecha_ultima_modificacion: datetime
     
+    # Campos adicionales opcionales
+    estudiante_nombre: Optional[str] = None
+    profesor_nombre: Optional[str] = None
+    items_presupuesto: Optional[List[dict]] = None
+    comentarios: Optional[str] = None
+
     class Config:
         from_attributes = True

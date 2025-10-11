@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from app.api.routes import auth, projects
 from app.api.routes import auth, projects, expenses, dashboard, reports
-
+from app.api.routes import auth, projects, expenses, dashboard, reports, catalogs
 
 
 
@@ -215,6 +215,11 @@ app.include_router(
     tags=["Reportes"]
 )
 
+app.include_router(
+    catalogs.router,
+    prefix="/api/v1/catalogs",
+    tags=["Catálogos"]
+)
 # Descomentar cuando crees estos routers:
 # from app.api.routes import projects, expenses, dashboard, reports
 # 

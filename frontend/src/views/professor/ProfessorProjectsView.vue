@@ -1,455 +1,786 @@
 <template>
-  <div class="dashboard">
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <h2>SIGPP - Profesor</h2>
+  <div class="professor-projects-view">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Gestión de Proyectos</h1>
+        <p class="page-subtitle">Revisa y valida los proyectos de tus estudiantes</p>
       </div>
-      <div class="navbar-menu">
-        <span>{{ authStore.user?.nombre_completo }}</span>
-        <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
-      </div>
-    </nav>
-
-    <div class="sidebar">
-      <router-link to="/professor/dashboard" class="menu-item">
-        <span>📊</span> Dashboard
-      </router-link>
-      <router-link to="/professor/projects" class="menu-item active">
-        <span>📁</span> Proyectos Asesorados
-      </router-link>
-      <router-link to="/professor/expenses" class="menu-item">
-        <span>💰</span> Gastos por Aprobar
-      </router-link>
-    </div>
-
-    <div class="main-content">
-      <div class="container">
-        <h1>Proyectos Asesorados</h1>
-
-        <div class="filters">
-          <select v-model="estadoFilter" @change="loadProjects" class="form-control">
-            <option value="">Todos los estados</option>
-            <option value="pendiente_validacion">Pendiente Validación</option>
-            <option value="validado_asesor">Validado</option>
-            <option value="activo">Activo</option>
-            <option value="finalizado">Finalizado</option>
-          </select>
-        </div>
-
-        <div v-if="loading" class="loading">Cargando proyectos...</div>
-
-        <div v-else-if="projects.length === 0" class="empty-state">
-          <p>📁 No tienes proyectos asignados</p>
-        </div>
-
-        <div v-else class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Estudiante</th>
-                <th>Estado</th>
-                <th>Presupuesto</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="project in projects" :key="project.id">
-                <td>{{ project.codigo_proyecto }}</td>
-                <td>{{ project.nombre }}</td>
-                <td>{{ project.estudiante?.nombre_completo || 'N/A' }}</td>
-                <td>
-                  <span :class="getEstadoBadgeClass(project.estado)">
-                    {{ formatEstado(project.estado) }}
-                  </span>
-                </td>
-                <td>${{ formatNumber(project.presupuesto_asignado || 0) }}</td>
-                <td>
-                  <button @click="viewProject(project.id)" class="btn-icon" title="Ver detalles">
-                    👁️
-                  </button>
-                  <button v-if="project.estado === 'pendiente_validacion'" @click="validateProject(project.id)"
-                    class="btn-icon btn-success" title="Validar">
-                    ✅
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="header-actions">
+        <notification-center />
       </div>
     </div>
 
-    <!-- Modal de detalles -->
-    <div v-if="selectedProject" class="modal" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>{{ selectedProject.nombre }}</h2>
-          <button @click="closeModal" class="close-btn">×</button>
+
+    <loading-spinner v-if="loading" />
+
+
+    <div v-else class="projects-content">
+      <!-- Estadísticas -->
+      <div class="stats-grid">
+        <div class="stat-card card-primary">
+          <div class="stat-icon">📚</div>
+          <div class="stat-info">
+            <p class="stat-label">Total Proyectos</p>
+            <h3 class="stat-value">{{ proyectos.length }}</h3>
+          </div>
         </div>
-        <div class="modal-body">
-          <div class="detail-row">
-            <strong>Código:</strong>
-            <span>{{ selectedProject.codigo_proyecto }}</span>
+
+
+        <div class="stat-card card-warning">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-info">
+            <p class="stat-label">Pendientes Validación</p>
+            <h3 class="stat-value">{{ proyectosPendientes }}</h3>
           </div>
-          <div class="detail-row">
-            <strong>Estudiante:</strong>
-            <span>{{ selectedProject.estudiante?.nombre_completo }}</span>
+        </div>
+
+
+        <div class="stat-card card-success">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <p class="stat-label">Validados</p>
+            <h3 class="stat-value">{{ proyectosValidados }}</h3>
           </div>
-          <div class="detail-row">
-            <strong>Estado:</strong>
-            <span :class="getEstadoBadgeClass(selectedProject.estado)">
-              {{ formatEstado(selectedProject.estado) }}
-            </span>
+        </div>
+
+
+        <div class="stat-card card-info">
+          <div class="stat-icon">🚀</div>
+          <div class="stat-info">
+            <p class="stat-label">Activos</p>
+            <h3 class="stat-value">{{ proyectosActivos }}</h3>
           </div>
-          <div class="detail-row">
-            <strong>Descripción:</strong>
-            <p>{{ selectedProject.descripcion }}</p>
-          </div>
-          <div class="detail-row">
-            <strong>Objetivos:</strong>
-            <p>{{ selectedProject.objetivos }}</p>
+        </div>
+      </div>
+
+
+      <!-- Filtros -->
+      <div class="filters-card">
+        <div class="filters-row">
+          <div class="filter-group">
+            <label>Estado</label>
+            <select v-model="filtros.estado" @change="aplicarFiltros" class="form-select">
+              <option value="">Todos los estados</option>
+              <option value="pendiente_validacion">Pendiente Validación</option>
+              <option value="validado">Validado</option>
+              <option value="activo">Activo</option>
+              <option value="rechazado">Rechazado</option>
+            </select>
           </div>
 
-          <div v-if="selectedProject.estado === 'pendiente_validacion'" class="validation-actions">
-            <button @click="approveProject" class="btn btn-success">✅ Validar Proyecto</button>
-            <button @click="rejectProject" class="btn btn-danger">❌ Rechazar</button>
+
+          <div class="filter-group">
+            <label>Buscar</label>
+            <input v-model="filtros.busqueda" type="text" placeholder="Buscar por nombre..." class="form-input"
+              @input="aplicarFiltros" />
+          </div>
+
+
+          <button @click="limpiarFiltros" class="btn btn-secondary">
+            Limpiar
+          </button>
+        </div>
+      </div>
+
+
+      <!-- Lista de Proyectos -->
+      <div v-if="proyectosFiltrados.length === 0" class="empty-state">
+        <span class="empty-icon">📋</span>
+        <h3>No se encontraron proyectos</h3>
+        <p v-if="filtros.estado || filtros.busqueda">
+          Intenta ajustar los filtros de búsqueda
+        </p>
+        <p v-else>Aún no tienes proyectos asignados</p>
+      </div>
+
+
+      <div v-else class="projects-grid">
+        <div v-for="proyecto in proyectosFiltrados" :key="proyecto.id" class="project-card">
+          <div class="project-header">
+            <h3 class="project-title">{{ proyecto.nombre }}</h3>
+            <project-status-badge :estado="proyecto.estado" />
+          </div>
+
+
+          <p class="project-description">{{ truncate(proyecto.descripcion, 120) }}</p>
+
+
+          <div class="project-info">
+            <div class="info-row">
+              <span class="info-label">👤 Estudiante:</span>
+              <span class="info-value">{{ proyecto.estudiante?.nombrecompleto || 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">💰 Presupuesto:</span>
+              <span class="info-value">{{ formatMoney(proyecto.presupuestoasignado || proyecto.presupuestoestimado)
+              }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">📅 Creado:</span>
+              <span class="info-value">{{ formatDate(proyecto.creadoen) }}</span>
+            </div>
+          </div>
+
+
+          <!-- Barra de progreso para proyectos activos -->
+          <div v-if="proyecto.estado === 'activo'" class="project-progress">
+            <div class="progress-label">
+              <span>Ejecución</span>
+              <span>{{ calcularPorcentajeEjecucion(proyecto) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: calcularPorcentajeEjecucion(proyecto) + '%' }"
+                :class="{ 'progress-warning': calcularPorcentajeEjecucion(proyecto) >= 80 }"></div>
+            </div>
+          </div>
+
+
+          <div class="project-actions">
+            <button @click="verDetalle(proyecto.id)" class="btn btn-sm btn-outline">
+              👁️ Ver Detalle
+            </button>
+            <button v-if="proyecto.estado === 'pendiente_validacion'" @click="abrirModalValidacion(proyecto)"
+              class="btn btn-sm btn-success">
+              ✅ Validar
+            </button>
+            <button v-if="proyecto.estado === 'pendiente_validacion'" @click="abrirModalRechazo(proyecto)"
+              class="btn btn-sm btn-danger">
+              ❌ Rechazar
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+
+    <!-- Modal de Validación -->
+    <modal-dialog v-if="mostrarModalValidacion" @close="cerrarModalValidacion">
+      <template #header>
+        <h2>Validar Proyecto</h2>
+      </template>
+      <template #body>
+        <div class="modal-content">
+          <p>¿Deseas validar el proyecto <strong>{{ proyectoSeleccionado?.nombre }}</strong> y enviarlo al Área
+            Financiera?</p>
+
+
+          <div class="form-group">
+            <label class="form-label">Comentarios (opcional)</label>
+            <textarea v-model="comentarioValidacion" class="form-textarea" rows="4"
+              placeholder="Agrega comentarios o recomendaciones..."></textarea>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <button @click="cerrarModalValidacion" class="btn btn-secondary">
+          Cancelar
+        </button>
+        <button @click="confirmarValidacion" class="btn btn-success" :disabled="validando">
+          <span v-if="!validando">✅ Validar y Enviar</span>
+          <span v-else>Validando...</span>
+        </button>
+      </template>
+    </modal-dialog>
+
+
+    <!-- Modal de Rechazo -->
+    <modal-dialog v-if="mostrarModalRechazo" @close="cerrarModalRechazo">
+      <template #header>
+        <h2>Devolver Proyecto</h2>
+      </template>
+      <template #body>
+        <div class="modal-content">
+          <p>Vas a devolver el proyecto <strong>{{ proyectoSeleccionado?.nombre }}</strong> al estudiante con
+            comentarios.</p>
+
+
+          <div class="form-group">
+            <label class="form-label">Comentarios (requeridos)</label>
+            <textarea v-model="comentarioRechazo" class="form-textarea" rows="5"
+              placeholder="Especifica los ajustes necesarios..." required></textarea>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <button @click="cerrarModalRechazo" class="btn btn-secondary">
+          Cancelar
+        </button>
+        <button @click="confirmarRechazo" class="btn btn-danger" :disabled="rechazando || !comentarioRechazo.trim()">
+          <span v-if="!rechazando">❌ Devolver con Comentarios</span>
+          <span v-else>Procesando...</span>
+        </button>
+      </template>
+    </modal-dialog>
   </div>
 </template>
 
+
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { projectService } from '@/services/projectService'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { projectService } from '@/services/projectService';
+import { expenseService } from '@/services/expenseService';
+import { useNotificationStore } from '@/stores/notifications';
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue';
+import NotificationCenter from '@/components/shared/NotificationCenter.vue';
+import ProjectStatusBadge from '@/components/project/ProjectStatusBadge.vue';
+import ModalDialog from '@/components/shared/ModalDialog.vue';
 
-const router = useRouter()
-const authStore = useAuthStore()
 
-const projects = ref([])
-const selectedProject = ref(null)
-const loading = ref(true)
-const estadoFilter = ref('')
+const router = useRouter();
+const authStore = useAuthStore();
+const notifStore = useNotificationStore();
 
-const loadProjects = async () => {
-  loading.value = true
+
+const loading = ref(false);
+const validando = ref(false);
+const rechazando = ref(false);
+const proyectos = ref([]);
+const gastos = ref([]);
+const filtros = ref({
+  estado: '',
+  busqueda: ''
+});
+
+
+const mostrarModalValidacion = ref(false);
+const mostrarModalRechazo = ref(false);
+const proyectoSeleccionado = ref(null);
+const comentarioValidacion = ref('');
+const comentarioRechazo = ref('');
+
+
+const proyectosPendientes = computed(() =>
+  proyectos.value.filter(p => p.estado === 'pendiente_validacion').length
+);
+
+
+const proyectosValidados = computed(() =>
+  proyectos.value.filter(p => p.estado === 'validado').length
+);
+
+
+const proyectosActivos = computed(() =>
+  proyectos.value.filter(p => p.estado === 'activo').length
+);
+
+
+const proyectosFiltrados = computed(() => {
+  let resultado = proyectos.value;
+
+
+  if (filtros.value.estado) {
+    resultado = resultado.filter(p => p.estado === filtros.value.estado);
+  }
+
+
+  if (filtros.value.busqueda) {
+    const busqueda = filtros.value.busqueda.toLowerCase();
+    resultado = resultado.filter(p =>
+      p.nombre.toLowerCase().includes(busqueda) ||
+      p.estudiante?.nombrecompleto.toLowerCase().includes(busqueda)
+    );
+  }
+
+
+  return resultado;
+});
+
+
+onMounted(async () => {
+  await cargarDatos();
+});
+
+
+const cargarDatos = async () => {
   try {
-    const params = estadoFilter.value ? { estado: estadoFilter.value } : {}
-    projects.value = await projectService.getAll(params)
+    loading.value = true;
+    const usuario = authStore.user;
+
+
+    // Cargar proyectos del profesor
+    const [proyectosData, gastosData] = await Promise.all([
+      projectService.getAll({ profesorid: usuario.id }),
+      expenseService.getAll()
+    ]);
+
+
+    proyectos.value = proyectosData;
+    gastos.value = gastosData;
+
+
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: 'No se pudo cargar los proyectos'
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
-const viewProject = async (id) => {
+
+const calcularPorcentajeEjecucion = (proyecto) => {
+  const presupuesto = parseFloat(proyecto.presupuestoasignado || proyecto.presupuestoestimado || 0);
+  if (presupuesto === 0) return 0;
+
+
+  const gastosProyecto = gastos.value.filter(
+    g => g.proyectoid === proyecto.id && g.estado === 'aprobado'
+  );
+  const ejecutado = gastosProyecto.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
+
+
+  return Math.round((ejecutado / presupuesto) * 100);
+};
+
+
+const aplicarFiltros = () => {
+  // Los computed se actualizan automáticamente
+};
+
+
+const limpiarFiltros = () => {
+  filtros.value = {
+    estado: '',
+    busqueda: ''
+  };
+};
+
+
+const verDetalle = (id) => {
+  router.push(`/profesor/proyectos/${id}`);
+};
+
+
+const abrirModalValidacion = (proyecto) => {
+  proyectoSeleccionado.value = proyecto;
+  comentarioValidacion.value = '';
+  mostrarModalValidacion.value = true;
+};
+
+
+const cerrarModalValidacion = () => {
+  mostrarModalValidacion.value = false;
+  proyectoSeleccionado.value = null;
+  comentarioValidacion.value = '';
+};
+
+
+const confirmarValidacion = async () => {
   try {
-    selectedProject.value = await projectService.getById(id)
+    validando.value = true
+    await projectService.updateStatus(proyectoSeleccionado.value.id, 'validadoasesor') // ✅ ESTADO CORRECTO
+    notifStore.addNotification({
+      tipo: 'success',
+      titulo: 'Proyecto Validado',
+      mensaje: 'El proyecto ha sido validado y enviado al área Financiera'
+    })
+    cerrarModalValidacion()
+    await cargarDatos()
   } catch (error) {
-    console.error('Error:', error)
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: error.response?.data?.detail || 'No se pudo validar el proyecto'
+    })
+  } finally {
+    validando.value = false
   }
 }
 
-const validateProject = async (id) => {
-  if (confirm('¿Validar este proyecto como asesor?')) {
-    try {
-      await projectService.updateStatus(id, 'validado_asesor')
-      loadProjects()
-    } catch (error) {
-      alert('Error al validar proyecto')
-    }
-  }
-}
 
-const approveProject = async () => {
+const abrirModalRechazo = (proyecto) => {
+  proyectoSeleccionado.value = proyecto;
+  comentarioRechazo.value = '';
+  mostrarModalRechazo.value = true;
+};
+
+
+const cerrarModalRechazo = () => {
+  mostrarModalRechazo.value = false;
+  proyectoSeleccionado.value = null;
+  comentarioRechazo.value = '';
+};
+
+
+const confirmarRechazo = async () => {
+  if (!comentarioRechazo.value.trim()) {
+    notifStore.addNotification({
+      tipo: 'warning',
+      titulo: 'Comentario Requerido',
+      mensaje: 'Debes especificar los ajustes necesarios'
+    });
+    return;
+  }
+
+
   try {
-    await projectService.updateStatus(selectedProject.value.id, 'validado_asesor')
-    closeModal()
-    loadProjects()
+    rechazando.value = true;
+
+
+    await projectService.updateStatus(proyectoSeleccionado.value.id, 'rechazado');
+
+
+    notifStore.addNotification({
+      tipo: 'success',
+      titulo: 'Proyecto Devuelto',
+      mensaje: 'El proyecto ha sido devuelto al estudiante con comentarios'
+    });
+
+
+    cerrarModalRechazo();
+    await cargarDatos();
+
+
   } catch (error) {
-    alert('Error al aprobar')
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: error.response?.data?.detail || 'No se pudo devolver el proyecto'
+    });
+  } finally {
+    rechazando.value = false;
   }
-}
+};
 
-const rejectProject = async () => {
-  if (confirm('¿Rechazar este proyecto?')) {
-    try {
-      await projectService.updateStatus(selectedProject.value.id, 'rechazado')
-      closeModal()
-      loadProjects()
-    } catch (error) {
-      alert('Error al rechazar')
-    }
-  }
-}
 
-const closeModal = () => {
-  selectedProject.value = null
-}
+const truncate = (text, length) => {
+  if (!text) return '';
+  return text.length > length ? text.substring(0, length) + '...' : text;
+};
 
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('es-CO').format(num)
-}
 
-const formatEstado = (estado) => {
-  const estados = {
-    'pendiente_validacion': 'Pendiente Validación',
-    'validado_asesor': 'Validado',
-    'activo': 'Activo',
-    'finalizado': 'Finalizado'
-  }
-  return estados[estado] || estado
-}
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('es-CO').format(value || 0);
+};
 
-const getEstadoBadgeClass = (estado) => {
-  const classes = {
-    'pendiente_validacion': 'badge badge-warning',
-    'validado_asesor': 'badge badge-info',
-    'activo': 'badge badge-success',
-    'finalizado': 'badge badge-primary'
-  }
-  return classes[estado] || 'badge'
-}
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
-
-onMounted(() => {
-  loadProjects()
-})
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
 </script>
 
+
 <style scoped>
-/* Usa los mismos estilos que ProjectsView.vue */
-.dashboard {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
-}
-
-.navbar {
-  background: white;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-}
-
-.navbar-brand h2 {
-  color: #667eea;
-  margin: 0;
-}
-
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 60px;
-  bottom: 0;
-  width: 220px;
-  background: white;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  padding-top: 20px;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 20px;
-  text-decoration: none;
-  color: #333;
-}
-
-.menu-item.active {
-  background-color: #667eea;
-  color: white;
-}
-
-.main-content {
-  margin-left: 220px;
-  margin-top: 60px;
-  padding: 40px 20px;
-}
-
-.container {
+.professor-projects-view {
+  padding: var(--space-8);
   max-width: 1400px;
   margin: 0 auto;
 }
 
-.table-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
-}
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.table th {
-  background-color: #667eea;
-  color: white;
-}
-
-.badge {
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.badge-warning {
-  background-color: #ffc107;
-  color: #333;
-}
-
-.badge-info {
-  background-color: #17a2b8;
-}
-
-.badge-success {
-  background-color: #28a745;
-}
-
-.badge-primary {
-  background-color: #007bff;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  margin: 0 5px;
-}
-
-.btn-logout {
-  background-color: #dc3545;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.form-control {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-}
-
-.filters {
-  margin-bottom: 20px;
-}
-
-.loading {
-  text-align: center;
-  padding: 50px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px;
-  background: white;
-  border-radius: 8px;
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 10px;
-  max-width: 800px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: var(--space-8);
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 32px;
-  cursor: pointer;
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--gray-900);
 }
 
-.modal-body {
-  padding: 20px;
+
+.page-subtitle {
+  color: var(--gray-600);
+  margin-top: var(--space-2);
+  font-size: 1.125rem;
 }
 
-.detail-row {
-  margin-bottom: 15px;
-}
 
-.detail-row strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #667eea;
-}
-
-.validation-actions {
-  margin-top: 30px;
+.header-actions {
   display: flex;
-  gap: 15px;
+  gap: var(--space-4);
+  align-items: center;
 }
 
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+
+.stat-card {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  gap: var(--space-4);
+  border-left: 4px solid var(--primary);
+  transition: var(--transition-base);
+}
+
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+
+.stat-card.card-warning {
+  border-left-color: var(--warning);
+}
+
+
+.stat-card.card-success {
+  border-left-color: var(--success);
+}
+
+
+.stat-card.card-info {
+  border-left-color: var(--info);
+}
+
+
+.stat-icon {
+  font-size: 2.5rem;
+}
+
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gray-900);
+}
+
+
+.filters-card {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-8);
+}
+
+
+.filters-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--gray-700);
+}
+
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--space-6);
+}
+
+
+.project-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition-base);
+}
+
+
+.project-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+
+.project-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  flex: 1;
+  margin-right: var(--space-3);
+}
+
+
+.project-description {
+  color: var(--gray-600);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin-bottom: var(--space-4);
+}
+
+
+.project-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+}
+
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+
+.info-label {
+  color: var(--gray-600);
   font-weight: 600;
-  color: white;
 }
 
-.btn-success {
-  background-color: #28a745;
+
+.info-value {
+  color: var(--gray-900);
+  font-weight: 700;
 }
 
-.btn-danger {
-  background-color: #dc3545;
+
+.project-progress {
+  margin-bottom: var(--space-4);
+}
+
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--space-2);
+}
+
+
+.progress-bar {
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+
+.progress-fill {
+  height: 100%;
+  background: var(--success);
+  transition: width 0.3s ease;
+}
+
+
+.progress-fill.progress-warning {
+  background: var(--warning);
+}
+
+
+.project-actions {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--gray-200);
+}
+
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+
+.modal-content p {
+  line-height: 1.6;
+  color: var(--gray-700);
+}
+
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-16);
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+
+.empty-icon {
+  font-size: 5rem;
+  margin-bottom: var(--space-6);
+  opacity: 0.4;
+}
+
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: var(--space-3);
+}
+
+
+.empty-state p {
+  color: var(--gray-600);
+  font-size: 1.125rem;
+}
+
+
+@media (max-width: 768px) {
+  .professor-projects-view {
+    padding: var(--space-4);
+  }
+
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

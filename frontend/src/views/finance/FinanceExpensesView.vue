@@ -1,66 +1,115 @@
 <template>
-  <div class="dashboard">
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <h2>SIGPP - Área Financiera</h2>
+  <div class="finance-expenses">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">💳 Gestión de Gastos y Egresos</h1>
+        <p class="page-subtitle">Supervisión de ejecución presupuestal</p>
       </div>
-      <div class="navbar-menu">
-        <span>{{ authStore.user?.nombre_completo }}</span>
-        <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
+      <div class="header-actions">
+        <button @click="exportarGastos" class="btn btn-outline">
+          📥 Exportar Gastos
+        </button>
+        <notification-center />
       </div>
-    </nav>
-
-    <div class="sidebar">
-      <router-link to="/finance/dashboard" class="menu-item">
-        <span>📊</span> Dashboard
-      </router-link>
-      <router-link to="/finance/projects" class="menu-item">
-        <span>📁</span> Todos los Proyectos
-      </router-link>
-      <router-link to="/finance/expenses" class="menu-item active">
-        <span>💰</span> Aprobación de Gastos
-      </router-link>
-      <router-link to="/finance/budgets" class="menu-item">
-        <span>💵</span> Asignación Presupuestal
-      </router-link>
-      <router-link to="/finance/reports" class="menu-item">
-        <span>📈</span> Reportes
-      </router-link>
     </div>
 
-    <div class="main-content">
-      <div class="container">
-        <div class="header-actions">
-          <h1>Aprobación de Gastos</h1>
-          <div class="badge badge-warning-lg">
-            {{ pendingCount }} Gastos Pendientes
+    <loading-spinner v-if="loading" />
+
+    <div v-else class="expenses-content">
+      <!-- Estadísticas de Gastos -->
+      <div class="stats-grid">
+        <div class="stat-card card-info">
+          <div class="stat-icon">📝</div>
+          <div class="stat-info">
+            <p class="stat-label">Total Gastos Registrados</p>
+            <h3 class="stat-value">{{ stats.totalGastos }}</h3>
+            <p class="stat-change">{{ formatMoney(stats.montoTotal) }} COP</p>
           </div>
         </div>
 
-        <div class="filters">
-          <select v-model="projectFilter" @change="loadExpenses" class="form-control">
-            <option value="">Todos los proyectos</option>
-            <option v-for="project in projects" :key="project.id" :value="project.id">
-              {{ project.nombre }}
-            </option>
-          </select>
-
-          <select v-model="estadoFilter" @change="loadExpenses" class="form-control">
-            <option value="">Todos los estados</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="aprobado">Aprobados</option>
-            <option value="rechazado">Rechazados</option>
-          </select>
+        <div class="stat-card card-warning">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-info">
+            <p class="stat-label">Gastos Pendientes</p>
+            <h3 class="stat-value">{{ stats.gastosPendientes }}</h3>
+            <p class="stat-change">{{ formatMoney(stats.montoPendiente) }} COP</p>
+          </div>
         </div>
 
-        <div v-if="loading" class="loading">Cargando gastos...</div>
-
-        <div v-else-if="expenses.length === 0" class="empty-state">
-          <p>💰 No hay gastos para mostrar</p>
+        <div class="stat-card card-success">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <p class="stat-label">Gastos Aprobados</p>
+            <h3 class="stat-value">{{ stats.gastosAprobados }}</h3>
+            <p class="stat-change">{{ formatMoney(stats.montoAprobado) }} COP</p>
+          </div>
         </div>
 
-        <div v-else class="table-container">
-          <table class="table">
+        <div class="stat-card card-danger">
+          <div class="stat-icon">❌</div>
+          <div class="stat-info">
+            <p class="stat-label">Gastos Rechazados</p>
+            <h3 class="stat-value">{{ stats.gastosRechazados }}</h3>
+            <p class="stat-change">{{ formatMoney(stats.montoRechazado) }} COP</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filters-card">
+        <h3 class="filters-title">🔍 Filtrar Gastos</h3>
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label>Proyecto</label>
+            <select v-model="filtros.proyectoId" @change="aplicarFiltros" class="form-select">
+              <option value="">Todos los proyectos</option>
+              <option v-for="proyecto in proyectos" :key="proyecto.id" :value="proyecto.id">
+                {{ proyecto.codigoproyecto }} - {{ proyecto.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Estado</label>
+            <select v-model="filtros.estado" @change="aplicarFiltros" class="form-select">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="aprobado">Aprobado</option>
+              <option value="rechazado">Rechazado</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Búsqueda</label>
+            <input v-model="filtros.busqueda" @input="aplicarFiltros" type="text" placeholder="Buscar por concepto..."
+              class="form-input" />
+          </div>
+
+          <div class="filter-actions">
+            <button @click="limpiarFiltros" class="btn btn-sm btn-outline">
+              🔄 Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Gastos -->
+      <div class="expenses-section">
+        <div class="section-header">
+          <h2 class="section-title">📋 Listado de Gastos</h2>
+          <p class="section-subtitle">
+            Mostrando {{ gastosFiltrados.length }} de {{ gastos.length }} gastos
+          </p>
+        </div>
+
+        <div v-if="gastosFiltrados.length === 0" class="empty-state">
+          <span class="empty-icon">📭</span>
+          <h3>No hay gastos registrados</h3>
+          <p>Los gastos aparecerán aquí cuando los estudiantes los registren</p>
+        </div>
+
+        <div v-else class="expenses-table-container">
+          <table class="expenses-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -69,35 +118,38 @@
                 <th>Concepto</th>
                 <th>Monto</th>
                 <th>Estado</th>
-                <th>Fecha</th>
+                <th>Fecha Registro</th>
+                <th>Soporte</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="expense in expenses" :key="expense.id">
-                <td>{{ expense.id }}</td>
-                <td>{{ getProjectName(expense.proyecto_id) }}</td>
-                <td>{{ getStudentName(expense.estudiante_id) }}</td>
-                <td>{{ expense.concepto }}</td>
-                <td class="amount">${{ formatNumber(expense.monto) }}</td>
+              <tr v-for="gasto in gastosFiltrados" :key="gasto.id" class="table-row">
+                <td class="cell-id">{{ gasto.id }}</td>
+                <td class="cell-proyecto">
+                  {{ getProyectoNombre(gasto.proyectoid) }}
+                </td>
+                <td>{{ gasto.estudiantenombre || 'N/A' }}</td>
+                <td class="cell-concepto">{{ gasto.concepto }}</td>
+                <td class="cell-money">{{ formatMoney(gasto.monto) }}</td>
                 <td>
-                  <span :class="getEstadoBadgeClass(expense.estado)">
-                    {{ formatEstado(expense.estado) }}
+                  <span class="status-badge" :class="`status-${gasto.estado}`">
+                    {{ formatEstado(gasto.estado) }}
                   </span>
                 </td>
-                <td>{{ formatDate(expense.creado_en) }}</td>
-                <td>
-                  <button @click="viewExpense(expense.id)" class="btn-icon" title="Ver detalles">
-                    👁️
-                  </button>
-                  <button v-if="expense.estado === 'pendiente'" @click="approveExpense(expense.id)"
-                    class="btn-icon btn-success" title="Aprobar">
-                    ✅
-                  </button>
-                  <button v-if="expense.estado === 'pendiente'" @click="showRejectModal(expense.id)"
-                    class="btn-icon btn-danger" title="Rechazar">
-                    ❌
-                  </button>
+                <td class="cell-date">{{ formatDate(gasto.creadoen) }}</td>
+                <td class="cell-soporte">
+                  <a v-if="gasto.soporteurl" :href="gasto.soporteurl" target="_blank" class="btn-link">
+                    📎 Ver
+                  </a>
+                  <span v-else>—</span>
+                </td>
+                <td class="cell-actions">
+                  <div class="action-buttons">
+                    <button @click="verDetalleGasto(gasto)" class="btn-action btn-view" title="Ver detalles">
+                      👁️
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -106,78 +158,76 @@
       </div>
     </div>
 
-    <!-- Modal de rechazo -->
-    <div v-if="rejectModalOpen" class="modal" @click="closeRejectModal">
-      <div class="modal-content" @click.stop>
+    <!-- Modal Detalle de Gasto -->
+    <div v-if="mostrarModalDetalle" class="modal-overlay" @click.self="cerrarModalDetalle">
+      <div class="modal-content">
         <div class="modal-header">
-          <h2>Rechazar Gasto</h2>
-          <button @click="closeRejectModal" class="close-btn">×</button>
+          <h2 class="modal-title">📄 Detalle del Gasto</h2>
+          <button @click="cerrarModalDetalle" class="btn-close">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Comentarios *</label>
-            <textarea v-model="rejectComments" class="form-control" rows="4" placeholder="Explica la razón del rechazo"
-              required></textarea>
-          </div>
-          <div class="form-actions">
-            <button @click="confirmReject" class="btn btn-danger">Rechazar Gasto</button>
-            <button @click="closeRejectModal" class="btn btn-secondary">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Modal de detalles -->
-    <div v-if="selectedExpense" class="modal" @click="closeDetailModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Detalles del Gasto #{{ selectedExpense.id }}</h2>
-          <button @click="closeDetailModal" class="close-btn">×</button>
-        </div>
         <div class="modal-body">
-          <div class="detail-row">
-            <strong>Proyecto:</strong>
-            <span>{{ getProjectName(selectedExpense.proyecto_id) }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Estudiante:</strong>
-            <span>{{ getStudentName(selectedExpense.estudiante_id) }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Concepto:</strong>
-            <span>{{ selectedExpense.concepto }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Monto:</strong>
-            <span class="amount-lg">${{ formatNumber(selectedExpense.monto) }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Estado:</strong>
-            <span :class="getEstadoBadgeClass(selectedExpense.estado)">
-              {{ formatEstado(selectedExpense.estado) }}
-            </span>
-          </div>
-          <div class="detail-row">
-            <strong>Fecha de Registro:</strong>
-            <span>{{ formatDate(selectedExpense.creado_en) }}</span>
-          </div>
-          <div class="detail-row">
-            <strong>Soporte:</strong>
-            <a :href="selectedExpense.soporte_url" target="_blank" class="link">📄 Ver documento</a>
-          </div>
-          <div v-if="selectedExpense.comentarios" class="detail-row">
-            <strong>Comentarios:</strong>
-            <p class="comments">{{ selectedExpense.comentarios }}</p>
-          </div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>ID del Gasto</label>
+              <p>{{ gastoSeleccionado?.id }}</p>
+            </div>
 
-          <div v-if="selectedExpense.estado === 'pendiente'" class="approval-actions">
-            <button @click="approveExpense(selectedExpense.id)" class="btn btn-success">
-              ✅ Aprobar Gasto
-            </button>
-            <button @click="showRejectModal(selectedExpense.id)" class="btn btn-danger">
-              ❌ Rechazar
-            </button>
+            <div class="detail-item">
+              <label>Proyecto</label>
+              <p>{{ getProyectoNombre(gastoSeleccionado?.proyectoid) }}</p>
+            </div>
+
+            <div class="detail-item">
+              <label>Estudiante</label>
+              <p>{{ gastoSeleccionado?.estudiantenombre }}</p>
+            </div>
+
+            <div class="detail-item">
+              <label>Concepto</label>
+              <p>{{ gastoSeleccionado?.concepto }}</p>
+            </div>
+
+            <div class="detail-item">
+              <label>Monto</label>
+              <p class="monto-destacado">{{ formatMoney(gastoSeleccionado?.monto) }} COP</p>
+            </div>
+
+            <div class="detail-item">
+              <label>Estado</label>
+              <span class="status-badge" :class="`status-${gastoSeleccionado?.estado}`">
+                {{ formatEstado(gastoSeleccionado?.estado) }}
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <label>Fecha de Registro</label>
+              <p>{{ formatDateFull(gastoSeleccionado?.creadoen) }}</p>
+            </div>
+
+            <div class="detail-item" v-if="gastoSeleccionado?.aprobadoen">
+              <label>Fecha de Aprobación</label>
+              <p>{{ formatDateFull(gastoSeleccionado?.aprobadoen) }}</p>
+            </div>
+
+            <div class="detail-item full-width" v-if="gastoSeleccionado?.comentarios">
+              <label>Comentarios</label>
+              <p>{{ gastoSeleccionado?.comentarios }}</p>
+            </div>
+
+            <div class="detail-item full-width" v-if="gastoSeleccionado?.soporteurl">
+              <label>Soporte</label>
+              <a :href="gastoSeleccionado?.soporteurl" target="_blank" class="btn btn-outline">
+                📎 Ver Documento de Soporte
+              </a>
+            </div>
           </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="cerrarModalDetalle" class="btn btn-outline">
+            Cerrar
+          </button>
         </div>
       </div>
     </div>
@@ -185,437 +235,539 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { expenseService } from '@/services/expenseService'
-import { projectService } from '@/services/projectService'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { expenseService } from '@/services/expenseService';
+import { projectService } from '@/services/projectService';
+import { useNotificationStore } from '@/stores/notifications';
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue';
+import NotificationCenter from '@/components/shared/NotificationCenter.vue';
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const notifStore = useNotificationStore();
 
-const expenses = ref([])
-const projects = ref([])
-const selectedExpense = ref(null)
-const loading = ref(true)
-const projectFilter = ref('')
-const estadoFilter = ref('')
-const rejectModalOpen = ref(false)
-const rejectExpenseId = ref(null)
-const rejectComments = ref('')
+const loading = ref(false);
+const gastos = ref([]);
+const proyectos = ref([]);
 
-const pendingCount = computed(() => {
-  return expenses.value.filter(e => e.estado === 'pendiente').length
-})
+const filtros = ref({
+  proyectoId: '',
+  estado: '',
+  busqueda: ''
+});
 
-const loadExpenses = async () => {
-  loading.value = true
+const mostrarModalDetalle = ref(false);
+const gastoSeleccionado = ref(null);
+
+const stats = computed(() => ({
+  totalGastos: gastos.value.length,
+  gastosPendientes: gastos.value.filter(g => g.estado === 'pendiente').length,
+  gastosAprobados: gastos.value.filter(g => g.estado === 'aprobado').length,
+  gastosRechazados: gastos.value.filter(g => g.estado === 'rechazado').length,
+  montoTotal: gastos.value.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0),
+  montoPendiente: gastos.value.filter(g => g.estado === 'pendiente').reduce((sum, g) => sum + parseFloat(g.monto || 0), 0),
+  montoAprobado: gastos.value.filter(g => g.estado === 'aprobado').reduce((sum, g) => sum + parseFloat(g.monto || 0), 0),
+  montoRechazado: gastos.value.filter(g => g.estado === 'rechazado').reduce((sum, g) => sum + parseFloat(g.monto || 0), 0)
+}));
+
+const gastosFiltrados = computed(() => {
+  let resultado = [...gastos.value];
+
+  if (filtros.value.proyectoId) {
+    resultado = resultado.filter(g => g.proyectoid === parseInt(filtros.value.proyectoId));
+  }
+
+  if (filtros.value.estado) {
+    resultado = resultado.filter(g => g.estado === filtros.value.estado);
+  }
+
+  if (filtros.value.busqueda) {
+    const busqueda = filtros.value.busqueda.toLowerCase();
+    resultado = resultado.filter(g => g.concepto.toLowerCase().includes(busqueda));
+  }
+
+  return resultado;
+});
+
+onMounted(async () => {
+  await cargarDatos();
+});
+
+const cargarDatos = async () => {
   try {
-    const params = {}
-    if (projectFilter.value) params.proyecto_id = projectFilter.value
-    if (estadoFilter.value) params.estado = estadoFilter.value
+    loading.value = true;
 
-    expenses.value = await expenseService.getAll(params)
+    const [gastosData, proyectosData] = await Promise.all([
+      expenseService.getAll(),
+      projectService.getAll()
+    ]);
+
+    gastos.value = gastosData;
+    proyectos.value = proyectosData;
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: 'No se pudo cargar los gastos'
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
-const loadProjects = async () => {
-  try {
-    projects.value = await projectService.getAll()
-  } catch (error) {
-    console.error('Error:', error)
-  }
-}
+const aplicarFiltros = () => {
+  // Los filtros se aplican automáticamente con computed
+};
 
-const viewExpense = async (id) => {
-  try {
-    selectedExpense.value = await expenseService.getById(id)
-  } catch (error) {
-    console.error('Error:', error)
-  }
-}
+const limpiarFiltros = () => {
+  filtros.value = {
+    proyectoId: '',
+    estado: '',
+    busqueda: ''
+  };
+};
 
-const approveExpense = async (id) => {
-  if (confirm('¿Aprobar este gasto?')) {
-    try {
-      await expenseService.approve(id, { estado: 'aprobado' })
-      closeDetailModal()
-      loadExpenses()
-      alert('Gasto aprobado exitosamente')
-    } catch (error) {
-      alert('Error al aprobar gasto')
-    }
-  }
-}
+const verDetalleGasto = (gasto) => {
+  gastoSeleccionado.value = gasto;
+  mostrarModalDetalle.value = true;
+};
 
-const showRejectModal = (id) => {
-  rejectExpenseId.value = id
-  rejectModalOpen.value = true
-  closeDetailModal()
-}
+const cerrarModalDetalle = () => {
+  mostrarModalDetalle.value = false;
+  gastoSeleccionado.value = null;
+};
 
-const closeRejectModal = () => {
-  rejectModalOpen.value = false
-  rejectExpenseId.value = null
-  rejectComments.value = ''
-}
+const exportarGastos = async () => {
+  notifStore.addNotification({
+    tipo: 'info',
+    titulo: 'Exportación en progreso',
+    mensaje: 'Generando reporte de gastos...'
+  });
 
-const confirmReject = async () => {
-  if (!rejectComments.value) {
-    alert('Debes proporcionar comentarios')
-    return
-  }
+  router.push('/finance/reports');
+};
 
-  try {
-    await expenseService.approve(rejectExpenseId.value, {
-      estado: 'rechazado',
-      comentarios: rejectComments.value
-    })
-    closeRejectModal()
-    loadExpenses()
-    alert('Gasto rechazado')
-  } catch (error) {
-    alert('Error al rechazar gasto')
-  }
-}
-
-const closeDetailModal = () => {
-  selectedExpense.value = null
-}
-
-const getProjectName = (projectId) => {
-  const project = projects.value.find(p => p.id === projectId)
-  return project ? project.nombre : `Proyecto #${projectId}`
-}
-
-const getStudentName = (studentId) => {
-  // Placeholder - deberías obtener esto del proyecto o de un endpoint de usuarios
-  return `Estudiante #${studentId}`
-}
-
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('es-CO').format(num)
-}
-
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('es-CO')
-}
+const getProyectoNombre = (proyectoId) => {
+  const proyecto = proyectos.value.find(p => p.id === proyectoId);
+  return proyecto ? `${proyecto.codigoproyecto} - ${proyecto.nombre}` : 'N/A';
+};
 
 const formatEstado = (estado) => {
   const estados = {
     'pendiente': 'Pendiente',
     'aprobado': 'Aprobado',
     'rechazado': 'Rechazado'
-  }
-  return estados[estado] || estado
-}
+  };
+  return estados[estado] || estado;
+};
 
-const getEstadoBadgeClass = (estado) => {
-  const classes = {
-    'pendiente': 'badge badge-warning',
-    'aprobado': 'badge badge-success',
-    'rechazado': 'badge badge-danger'
-  }
-  return classes[estado] || 'badge'
-}
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0 }).format(value || 0);
+};
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
+const formatDate = (date) => {
+  if (!date) return '—';
+  return new Date(date).toLocaleDateString('es-CO');
+};
 
-onMounted(() => {
-  loadProjects()
-  loadExpenses()
-})
+const formatDateFull = (date) => {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('es-CO');
+};
 </script>
 
 <style scoped>
-/* Estilos similares a los anteriores */
-.dashboard {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
+.finance-expenses {
+  padding: var(--space-8);
+  max-width: 1800px;
+  margin: 0 auto;
 }
 
-.navbar {
-  background: white;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
+  margin-bottom: var(--space-8);
 }
 
-.navbar-brand h2 {
-  color: #667eea;
-  margin: 0;
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--gray-900);
 }
 
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 60px;
-  bottom: 0;
-  width: 250px;
-  background: white;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  padding-top: 20px;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 20px;
-  text-decoration: none;
-  color: #333;
-}
-
-.menu-item.active {
-  background-color: #667eea;
-  color: white;
-}
-
-.main-content {
-  margin-left: 250px;
-  margin-top: 60px;
-  padding: 40px 20px;
-}
-
-.container {
-  max-width: 1600px;
-  margin: 0 auto;
+.page-subtitle {
+  color: var(--gray-600);
+  margin-top: var(--space-2);
+  font-size: 1.125rem;
 }
 
 .header-actions {
   display: flex;
-  justify-content: space-between;
+  gap: var(--space-4);
   align-items: center;
-  margin-bottom: 20px;
 }
 
-.badge-warning-lg {
-  background-color: #ffc107;
-  color: #333;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-size: 16px;
-  font-weight: 600;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
 }
 
-.filters {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.form-control {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-.table-container {
+.stat-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  gap: var(--space-4);
+  border-left: 5px solid;
+  transition: var(--transition-base);
 }
 
-.table {
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.stat-card.card-info {
+  border-left-color: var(--info);
+}
+
+.stat-card.card-warning {
+  border-left-color: var(--warning);
+}
+
+.stat-card.card-success {
+  border-left-color: var(--success);
+}
+
+.stat-card.card-danger {
+  border-left-color: var(--error);
+}
+
+.stat-icon {
+  font-size: 3rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gray-900);
+}
+
+.stat-change {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-top: var(--space-1);
+}
+
+.filters-card {
+  background: white;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
+}
+
+.filters-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--space-5);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+
+.filter-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.form-select,
+.form-input {
+  width: 100%;
+  padding: var(--space-3);
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  transition: var(--transition-base);
+}
+
+.form-select:focus,
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.expenses-section {
+  background: white;
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  margin-bottom: var(--space-6);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.section-subtitle {
+  color: var(--gray-600);
+}
+
+.expenses-table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--gray-200);
+}
+
+.expenses-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 1200px;
 }
 
-.table th,
-.table td {
-  padding: 12px;
+.expenses-table thead {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.expenses-table th {
+  padding: var(--space-4);
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-transform: uppercase;
 }
 
-.table th {
-  background-color: #667eea;
-  color: white;
+.expenses-table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--gray-200);
 }
 
-.amount {
+.table-row:hover {
+  background: var(--gray-50);
+}
+
+.cell-id {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.cell-concepto {
+  max-width: 300px;
+}
+
+.cell-money {
+  font-weight: 700;
+  color: var(--success);
+  text-align: right;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-pendiente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-aprobado {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-rechazado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.btn-link {
+  color: var(--primary);
+  text-decoration: none;
   font-weight: 600;
-  color: #28a745;
 }
 
-.amount-lg {
-  font-size: 24px;
-  font-weight: bold;
-  color: #28a745;
+.btn-link:hover {
+  text-decoration: underline;
 }
 
-.badge {
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.badge-warning {
-  background-color: #ffc107;
-  color: #333;
-}
-
-.badge-success {
-  background-color: #28a745;
-}
-
-.badge-danger {
-  background-color: #dc3545;
-}
-
-.btn-icon {
-  background: none;
+.btn-action {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-200);
   border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 18px;
-  margin: 0 5px;
+  transition: var(--transition-base);
 }
 
-.btn-logout {
-  background-color: #dc3545;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+.btn-action:hover {
+  background: var(--primary);
+  transform: scale(1.1);
 }
 
-.modal {
+.empty-state {
+  text-align: center;
+  padding: var(--space-12);
+}
+
+.empty-icon {
+  font-size: 5rem;
+  display: block;
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+/* Modal */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 2000;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
 }
 
 .modal-content {
   background: white;
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
   max-width: 700px;
-  width: 90%;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
 }
 
 .modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: var(--space-6);
+  border-bottom: 2px solid var(--gray-200);
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 32px;
-  cursor: pointer;
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 800;
 }
 
-.modal-body {
-  padding: 20px;
-}
-
-.detail-row {
-  margin-bottom: 15px;
-}
-
-.detail-row strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #667eea;
-}
-
-.comments {
-  background: #f9f9f9;
-  padding: 10px;
-  border-radius: 5px;
-  color: #666;
-}
-
-.approval-actions {
-  margin-top: 30px;
+.btn-close {
+  width: 40px;
+  height: 40px;
   display: flex;
-  gap: 15px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
-}
-
-.form-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.btn {
-  padding: 12px 24px;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-full);
+  font-size: 1.5rem;
   cursor: pointer;
-  font-weight: 600;
+  transition: var(--transition-base);
+}
+
+.btn-close:hover {
+  background: var(--error);
   color: white;
 }
 
-.btn-success {
-  background-color: #28a745;
+.modal-body {
+  padding: var(--space-6);
 }
 
-.btn-danger {
-  background-color: #dc3545;
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
 }
 
-.btn-secondary {
-  background-color: #6c757d;
+.detail-item {
+  display: flex;
+  flex-direction: column;
 }
 
-.link {
-  color: #007bff;
-  text-decoration: none;
+.detail-item.full-width {
+  grid-column: 1 / -1;
 }
 
-.loading {
-  text-align: center;
-  padding: 50px;
+.detail-item label {
+  font-weight: 700;
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-2);
 }
 
-.empty-state {
-  text-align: center;
-  padding: 60px;
-  background: white;
-  border-radius: 8px;
+.detail-item p {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.monto-destacado {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--success);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-6);
+  border-top: 2px solid var(--gray-200);
+}
+
+@media (max-width: 768px) {
+  .finance-expenses {
+    padding: var(--space-4);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,361 +1,847 @@
 <template>
-  <div class="dashboard">
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <h2>SIGPP</h2>
+  <div class="project-create-view">
+    <div class="create-header">
+      <button @click="volver" class="btn-back">
+        ← Volver a Proyectos
+      </button>
+
+      <div class="header-content">
+        <h1 class="page-title">Crear Nuevo Proyecto</h1>
+        <p class="page-subtitle">Completa la información para registrar tu proyecto de grado</p>
       </div>
-      <div class="navbar-menu">
-        <span>{{ authStore.user?.nombre_completo }}</span>
-        <router-link to="/dashboard" class="btn btn-secondary">Volver</router-link>
-      </div>
-    </nav>
+    </div>
 
-    <div class="main-content">
-      <div class="container">
-        <h1>Crear Nuevo Proyecto</h1>
+    <loading-spinner v-if="cargandoDatos" message="Cargando formulario..." />
 
-        <form @submit.prevent="handleSubmit" class="project-form">
-          <div v-if="error" class="alert alert-error">{{ error }}</div>
-          <div v-if="success" class="alert alert-success">{{ success }}</div>
+    <div v-else class="create-content">
+      <form @submit.prevent="guardarProyecto" class="project-form">
 
-          <div class="form-section">
-            <h3>Información General</h3>
+        <!-- Sección: Información Básica -->
+        <div class="form-section">
+          <div class="section-header">
+            <h2 class="section-title">📋 Información Básica</h2>
+            <span class="required-note">* Campos obligatorios</span>
+          </div>
 
-            <div class="form-group">
-              <label>Nombre del Proyecto *</label>
-              <input type="text" v-model="projectData.nombre" class="form-control"
-                placeholder="Nombre descriptivo del proyecto" required minlength="10" />
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label class="form-label">
+                Nombre del Proyecto *
+                <span class="label-hint">Título descriptivo de tu proyecto</span>
+              </label>
+              <input v-model="formulario.nombre" type="text" class="form-input"
+                placeholder="Ej: Sistema de Gestión de Proyectos de Grado" required maxlength="200" />
+              <span class="char-count">{{ formulario.nombre.length }}/200</span>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label>Descripción *</label>
-              <textarea v-model="projectData.descripcion" class="form-control" rows="4"
-                placeholder="Describe tu proyecto de grado" required minlength="20"></textarea>
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label class="form-label">
+                Descripción *
+                <span class="label-hint">Describe brevemente tu proyecto</span>
+              </label>
+              <textarea v-model="formulario.descripcion" class="form-textarea" rows="4"
+                placeholder="Describe el problema que resuelve tu proyecto, su alcance y principales características..."
+                required maxlength="1000"></textarea>
+              <span class="char-count">{{ formulario.descripcion.length }}/1000</span>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label>Objetivos *</label>
-              <textarea v-model="projectData.objetivos" class="form-control" rows="4"
-                placeholder="Objetivos del proyecto" required minlength="20"></textarea>
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label class="form-label">
+                Objetivos *
+                <span class="label-hint">Define los objetivos que persigue tu proyecto</span>
+              </label>
+              <textarea v-model="formulario.objetivos" class="form-textarea" rows="4"
+                placeholder="Lista los objetivos generales y específicos de tu proyecto..." required
+                maxlength="1000"></textarea>
+              <span class="char-count">{{ formulario.objetivos.length }}/1000</span>
             </div>
+          </div>
 
+          <div class="form-row">
             <div class="form-group">
-              <label>Profesor Asesor *</label>
-              <select v-model="projectData.profesor_id" class="form-control" required>
-                <option value="">Seleccione un profesor</option>
+              <label class="form-label">
+                Profesor Asesor *
+                <span class="label-hint">Selecciona tu director de proyecto</span>
+              </label>
+              <select v-model="formulario.profesor_id" class="form-select" required>
+                <option value="">-- Selecciona un profesor --</option>
                 <option v-for="profesor in profesores" :key="profesor.id" :value="profesor.id">
                   {{ profesor.nombre_completo }}
                 </option>
               </select>
+              <p v-if="profesores.length === 0" class="form-hint error">
+                ⚠️ No hay profesores disponibles. Contacta con administración.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección: Presupuesto -->
+        <div class="form-section">
+          <div class="section-header">
+            <h2 class="section-title">💰 Presupuesto Estimado</h2>
+            <button type="button" @click="agregarItem" class="btn btn-sm btn-secondary">
+              ➕ Agregar Item
+            </button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">
+                Presupuesto Total Estimado *
+                <span class="label-hint">Monto total solicitado (COP)</span>
+              </label>
+              <div class="input-with-prefix">
+                <span class="input-prefix">$</span>
+                <input v-model.number="formulario.presupuesto_estimado" type="number" class="form-input" placeholder="0"
+                  required min="0" step="1000" />
+              </div>
+              <p class="form-hint">
+                💡 Presupuesto calculado automáticamente: <strong>${{ formatMoney(presupuestoCalculado) }}</strong>
+              </p>
             </div>
           </div>
 
-          <div class="form-section">
-            <h3>Presupuesto</h3>
+          <!-- Items del Presupuesto -->
+          <div v-if="formulario.items_presupuesto.length > 0" class="budget-items">
+            <h3 class="subsection-title">📝 Desglose del Presupuesto</h3>
 
-            <div v-for="(item, index) in projectData.items_presupuesto" :key="index" class="budget-item">
-              <div class="budget-item-header">
-                <h4>Item {{ index + 1 }}</h4>
-                <button type="button" @click="removeItem(index)" class="btn-remove"
-                  v-if="projectData.items_presupuesto.length > 1">
-                  Eliminar
+            <div v-for="(item, index) in formulario.items_presupuesto" :key="index" class="budget-item-card">
+              <div class="item-header">
+                <span class="item-number">Item {{ index + 1 }}</span>
+                <button type="button" @click="eliminarItem(index)" class="btn-delete" title="Eliminar item">
+                  🗑️
                 </button>
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Concepto *</label>
-                  <input type="text" v-model="item.concepto" class="form-control"
-                    placeholder="Ej: Materiales de laboratorio" required minlength="5" />
+              <div class="item-content">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Concepto *</label>
+                    <input v-model="item.concepto" type="text" class="form-input" placeholder="Ej: Equipos de cómputo"
+                      required />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Costo *</label>
+                    <div class="input-with-prefix">
+                      <span class="input-prefix">$</span>
+                      <input v-model.number="item.costo" type="number" class="form-input" placeholder="0" required
+                        min="0" @input="calcularPresupuestoTotal" />
+                    </div>
+                  </div>
                 </div>
 
                 <div class="form-group">
-                  <label>Costo (COP) *</label>
-                  <input type="number" v-model="item.costo" class="form-control" placeholder="0" required min="1" />
+                  <label class="form-label">Justificación *</label>
+                  <textarea v-model="item.justificacion" class="form-textarea" rows="2"
+                    placeholder="Explica por qué necesitas este recurso..." required></textarea>
                 </div>
               </div>
-
-              <div class="form-group">
-                <label>Justificación *</label>
-                <textarea v-model="item.justificacion" class="form-control" rows="2"
-                  placeholder="Justifica por qué necesitas este gasto" required minlength="10"></textarea>
-              </div>
             </div>
 
-            <button type="button" @click="addItem" class="btn btn-secondary">
-              + Agregar Item
-            </button>
-
-            <div class="total-presupuesto">
-              <strong>Total Presupuesto:</strong>
-              <span>${{ formatNumber(calcularTotal()) }}</span>
+            <div class="budget-total">
+              <span class="total-label">Total Calculado:</span>
+              <span class="total-amount">${{ formatMoney(presupuestoCalculado) }}</span>
             </div>
           </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary" :disabled="loading">
-              {{ loading ? 'Creando...' : 'Crear Proyecto' }}
+          <div v-else class="empty-budget">
+            <span class="empty-icon">📋</span>
+            <p>No has agregado items al presupuesto</p>
+            <button type="button" @click="agregarItem" class="btn btn-primary">
+              ➕ Agregar Primer Item
             </button>
-            <router-link to="/projects" class="btn btn-secondary">Cancelar</router-link>
           </div>
-        </form>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="form-actions">
+          <button type="button" @click="cancelar" class="btn btn-secondary btn-lg">
+            ❌ Cancelar
+          </button>
+
+          <button type="button" @click="guardarBorrador" class="btn btn-outline btn-lg" :disabled="enviando">
+            💾 Guardar Borrador
+          </button>
+
+          <button type="submit" class="btn btn-primary btn-lg" :disabled="enviando">
+            <span v-if="enviando">⏳ Creando...</span>
+            <span v-else>✅ Crear Proyecto</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Barra de Progreso -->
+    <div class="progress-indicator">
+      <div class="progress-step" :class="{ completed: formulario.nombre }">
+        <span class="step-number">1</span>
+        <span class="step-label">Información</span>
+      </div>
+      <div class="progress-step" :class="{ completed: formulario.presupuesto_estimado > 0 }">
+        <span class="step-number">2</span>
+        <span class="step-label">Presupuesto</span>
+      </div>
+      <div class="progress-step" :class="{ completed: formulario.items_presupuesto.length > 0 }">
+        <span class="step-number">3</span>
+        <span class="step-label">Items</span>
       </div>
     </div>
+
+    <notification-center />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { projectService } from '@/services/projectService'
-import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import NotificationCenter from '@/components/shared/NotificationCenter.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notifStore = useNotificationStore()
 
-const projectData = ref({
+const cargandoDatos = ref(false)
+const enviando = ref(false)
+const profesores = ref([])
+
+const formulario = ref({
   nombre: '',
   descripcion: '',
   objetivos: '',
   profesor_id: '',
-  items_presupuesto: [
-    {
-      concepto: '',
-      justificacion: '',
-      costo: ''
-    }
-  ]
+  presupuesto_estimado: 0,
+  items_presupuesto: []
 })
 
-const profesores = ref([])
-const loading = ref(false)
-const error = ref('')
-const success = ref('')
+const presupuestoCalculado = computed(() => {
+  return formulario.value.items_presupuesto.reduce((sum, item) => {
+    return sum + (parseFloat(item.costo) || 0)
+  }, 0)
+})
 
-const loadProfesores = async () => {
+onMounted(async () => {
+  await cargarProfesores()
+})
+
+const cargarProfesores = async () => {
   try {
-    // Esto es un placeholder - deberías tener un endpoint para listar profesores
-    profesores.value = [
-      { id: 1, nombre_completo: 'Dr. Juan Pérez' },
-      { id: 2, nombre_completo: 'Dra. María García' }
-    ]
-  } catch (err) {
-    console.error('Error al cargar profesores:', err)
+    cargandoDatos.value = true
+
+    // Intentar primero el endpoint específico de profesores
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/auth/profesores', {
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`
+        }
+      })
+
+      if (response.ok) {
+        profesores.value = await response.json()
+        console.log('Profesores cargados:', profesores.value)
+
+        if (profesores.value.length === 0) {
+          notifStore.addNotification({
+            tipo: 'warning',
+            titulo: 'Sin Profesores',
+            mensaje: 'No hay profesores registrados en el sistema'
+          })
+        }
+        return
+      }
+    } catch (error) {
+      console.warn('Endpoint /profesores no disponible, intentando /usuarios')
+    }
+
+    // Si falla, intentar con el endpoint de usuarios
+    const response = await fetch('http://localhost:8000/api/v1/auth/usuarios', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('No se pudo cargar la lista de usuarios')
+    }
+
+    const usuarios = await response.json()
+
+    // Filtrar solo profesores
+    profesores.value = usuarios.filter(u => u.rol === 'profesor')
+    console.log('Profesores filtrados:', profesores.value)
+
+    if (profesores.value.length === 0) {
+      notifStore.addNotification({
+        tipo: 'warning',
+        titulo: 'Sin Profesores',
+        mensaje: 'No hay profesores registrados en el sistema. Por favor contacta al administrador.'
+      })
+    }
+
+  } catch (error) {
+    console.error('Error al cargar profesores:', error)
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: 'No se pudo cargar la lista de profesores. Verifica tu conexión.'
+    })
+    profesores.value = []
+  } finally {
+    cargandoDatos.value = false
   }
 }
 
-const addItem = () => {
-  projectData.value.items_presupuesto.push({
+
+const agregarItem = () => {
+  formulario.value.items_presupuesto.push({
     concepto: '',
-    justificacion: '',
-    costo: ''
+    costo: 0,
+    justificacion: ''
   })
 }
 
-const removeItem = (index) => {
-  projectData.value.items_presupuesto.splice(index, 1)
+const eliminarItem = (index) => {
+  formulario.value.items_presupuesto.splice(index, 1)
+  calcularPresupuestoTotal()
 }
 
-const calcularTotal = () => {
-  return projectData.value.items_presupuesto.reduce((total, item) => {
-    return total + (parseFloat(item.costo) || 0)
-  }, 0)
+const calcularPresupuestoTotal = () => {
+  formulario.value.presupuesto_estimado = presupuestoCalculado.value
 }
 
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('es-CO').format(num)
+const validarFormulario = () => {
+  if (!formulario.value.nombre.trim()) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'El nombre del proyecto es obligatorio'
+    })
+    return false
+  }
+
+  if (!formulario.value.descripcion.trim()) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'La descripción del proyecto es obligatoria'
+    })
+    return false
+  }
+
+  if (!formulario.value.objetivos.trim()) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'Los objetivos del proyecto son obligatorios'
+    })
+    return false
+  }
+
+  if (!formulario.value.profesor_id) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Campo Requerido',
+      mensaje: 'Debes seleccionar un profesor asesor'
+    })
+    return false
+  }
+
+  if (formulario.value.presupuesto_estimado <= 0) {
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Presupuesto Inválido',
+      mensaje: 'El presupuesto debe ser mayor a cero'
+    })
+    return false
+  }
+
+  if (formulario.value.items_presupuesto.length === 0) {
+    notifStore.addNotification({
+      tipo: 'warning',
+      titulo: 'Sin Items',
+      mensaje: 'Se recomienda agregar items al presupuesto'
+    })
+  }
+
+  // Validar que todos los items tengan datos completos
+  for (let i = 0; i < formulario.value.items_presupuesto.length; i++) {
+    const item = formulario.value.items_presupuesto[i]
+    if (!item.concepto || !item.costo || !item.justificacion) {
+      notifStore.addNotification({
+        tipo: 'error',
+        titulo: 'Item Incompleto',
+        mensaje: `El item ${i + 1} tiene campos vacíos`
+      })
+      return false
+    }
+  }
+
+  return true
 }
 
-const handleSubmit = async () => {
-  loading.value = true
-  error.value = ''
-  success.value = ''
+const guardarProyecto = async () => {
+  if (!validarFormulario()) return
 
   try {
-    await projectService.create(projectData.value)
-    success.value = 'Proyecto creado exitosamente'
-    setTimeout(() => {
-      router.push('/projects')
-    }, 2000)
-  } catch (err) {
-    error.value = err.response?.data?.detail || 'Error al crear proyecto'
+    enviando.value = true
+
+    const proyecto = {
+      nombre: formulario.value.nombre.trim(),
+      descripcion: formulario.value.descripcion.trim(),
+      objetivos: formulario.value.objetivos.trim(),
+      profesor_id: parseInt(formulario.value.profesor_id),
+      presupuesto_estimado: formulario.value.presupuesto_estimado,
+      items_presupuesto: formulario.value.items_presupuesto,
+      estado: 'borrador'
+    }
+
+    await projectService.create(proyecto)
+
+    notifStore.addNotification({
+      tipo: 'success',
+      titulo: '✅ Proyecto Creado',
+      mensaje: 'El proyecto ha sido creado exitosamente como borrador'
+    })
+
+    router.push('/proyectos')
+  } catch (error) {
+    console.error('Error:', error)
+    notifStore.addNotification({
+      tipo: 'error',
+      titulo: 'Error',
+      mensaje: error.response?.data?.detail || 'No se pudo crear el proyecto'
+    })
   } finally {
-    loading.value = false
+    enviando.value = false
   }
 }
 
-onMounted(() => {
-  loadProfesores()
-})
+const guardarBorrador = async () => {
+  if (!formulario.value.nombre.trim()) {
+    notifStore.addNotification({
+      tipo: 'warning',
+      titulo: 'Nombre Requerido',
+      mensaje: 'Debes ingresar al menos el nombre del proyecto'
+    })
+    return
+  }
+
+  await guardarProyecto()
+}
+
+const cancelar = () => {
+  const confirmacion = confirm('¿Estás seguro de cancelar? Se perderán los datos ingresados.')
+  if (confirmacion) {
+    router.push('/proyectos')
+  }
+}
+
+const volver = () => {
+  cancelar()
+}
+
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value || 0)
+}
 </script>
 
 <style scoped>
-.dashboard {
+.project-create-view {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  padding: var(--space-8);
+  position: relative;
 }
 
-.navbar {
+.create-header {
+  max-width: 1200px;
+  margin: 0 auto var(--space-8);
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
   background: white;
-  padding: 15px 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: var(--transition-base);
+  margin-bottom: var(--space-6);
 }
 
-.navbar-brand h2 {
-  color: #667eea;
-  margin: 0;
+.btn-back:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateX(-5px);
 }
 
-.navbar-menu {
-  display: flex;
-  gap: 15px;
-  align-items: center;
+.header-content {
+  text-align: center;
+  margin-bottom: var(--space-4);
 }
 
-.main-content {
-  padding: 40px 20px;
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--gray-900);
+  margin-bottom: var(--space-2);
 }
 
-.container {
-  max-width: 900px;
+.page-subtitle {
+  font-size: 1.125rem;
+  color: var(--gray-600);
+}
+
+.create-content {
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .project-form {
   background: white;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-10);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
 }
 
 .form-section {
-  margin-bottom: 30px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid #ddd;
+  margin-bottom: var(--space-10);
+  padding-bottom: var(--space-8);
+  border-bottom: 3px solid var(--gray-100);
 }
 
-.form-section h3 {
-  color: #667eea;
-  margin-bottom: 20px;
+.form-section:last-of-type {
+  border-bottom: none;
 }
 
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
-}
-
-.form-control {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.budget-item {
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.budget-item-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: var(--space-8);
 }
 
-.budget-item-header h4 {
-  margin: 0;
-  color: #333;
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--gray-900);
 }
 
-.btn-remove {
-  background-color: #dc3545;
-  color: white;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 12px;
+.required-note {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  font-weight: 600;
 }
 
 .form-row {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 15px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
-.total-presupuesto {
-  margin-top: 20px;
-  padding: 15px;
-  background: #e8f4f8;
-  border-radius: 5px;
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label-hint {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gray-500);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: var(--space-4);
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  transition: var(--transition-base);
+  background: white;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.char-count {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  text-align: right;
+  margin-top: var(--space-1);
+}
+
+.input-with-prefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  position: absolute;
+  left: var(--space-4);
+  font-weight: 700;
+  color: var(--gray-600);
+  font-size: 1.125rem;
+}
+
+.input-with-prefix .form-input {
+  padding-left: var(--space-10);
+}
+
+.form-hint {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-top: var(--space-2);
+}
+
+.form-hint.error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.subsection-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: var(--space-6);
+}
+
+.budget-items {
+  margin-top: var(--space-6);
+}
+
+.budget-item-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  transition: var(--transition-base);
+}
+
+.budget-item-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.item-header {
   display: flex;
   justify-content: space-between;
-  font-size: 18px;
+  align-items: center;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--gray-100);
+}
+
+.item-number {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--primary);
+  background: white;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--primary);
+}
+
+.btn-delete {
+  background: var(--error-light);
+  color: var(--error);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 1.125rem;
+  transition: var(--transition-base);
+}
+
+.btn-delete:hover {
+  background: var(--error);
+  color: white;
+  transform: scale(1.1);
+}
+
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.budget-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-6);
+  background: var(--gradient-blue);
+  color: white;
+  border-radius: var(--radius-xl);
+  margin-top: var(--space-6);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.total-label {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.total-amount {
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.empty-budget {
+  text-align: center;
+  padding: var(--space-12);
+  background: var(--gray-50);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--gray-300);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
 }
 
 .form-actions {
   display: flex;
-  gap: 15px;
-  justify-content: flex-end;
-  margin-top: 30px;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-top: var(--space-8);
 }
 
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+.btn-outline {
+  background: white;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+}
+
+.progress-indicator {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  background: white;
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: var(--space-3);
+  z-index: 100;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-200);
+  color: var(--gray-600);
+  border-radius: 50%;
+  font-weight: 700;
+  transition: var(--transition-base);
+}
+
+.progress-step.completed .step-number {
+  background: var(--success);
+  color: white;
+}
+
+.step-label {
+  font-size: 0.75rem;
   font-weight: 600;
-  text-decoration: none;
-  display: inline-block;
+  color: var(--gray-600);
 }
 
-.btn-primary {
-  background-color: #007bff;
-  color: white;
+.progress-step.completed .step-label {
+  color: var(--success);
 }
 
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
+@media (max-width: 768px) {
+  .project-create-view {
+    padding: var(--space-4);
+  }
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+  .page-title {
+    font-size: 1.75rem;
+  }
 
-.alert {
-  padding: 15px;
-  border-radius: 5px;
-  margin-bottom: 20px;
-}
+  .project-form {
+    padding: var(--space-6);
+  }
 
-.alert-error {
-  background-color: #f8d7da;
-  color: #721c24;
-}
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 
-.alert-success {
-  background-color: #d4edda;
-  color: #155724;
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .progress-indicator {
+    bottom: var(--space-4);
+    right: var(--space-4);
+    left: var(--space-4);
+  }
 }
 </style>

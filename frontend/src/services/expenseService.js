@@ -16,13 +16,13 @@ export const expenseService = {
     return response.data;
   },
 
-  async approve(id, aprobacion) {
-    const response = await api.patch(`/expenses/${id}/aprobar`, aprobacion);
+  async approve(id) {
+    const response = await api.patch(`/expenses/${id}/aprobar`);
     return response.data;
   },
 
-  async getProjectBalance(projectId) {
-    const response = await api.get(`/expenses/proyecto/${projectId}/saldo`);
+  async reject(id) {
+    const response = await api.patch(`/expenses/${id}/rechazar`);
     return response.data;
   },
 

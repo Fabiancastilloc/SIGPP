@@ -4,6 +4,7 @@ from datetime import datetime
 import enum
 from app.core.database import Base
 
+
 class EstadoProyecto(str, enum.Enum):
     BORRADOR = "borrador"
     PENDIENTE_VALIDACION = "pendiente_validacion"
@@ -11,6 +12,7 @@ class EstadoProyecto(str, enum.Enum):
     ACTIVO = "activo"
     RECHAZADO = "rechazado"
     FINALIZADO = "finalizado"
+
 
 class Project(Base):
     __tablename__ = "proyectos"
@@ -20,7 +22,11 @@ class Project(Base):
     nombre = Column(String(200), nullable=False)
     descripcion = Column(Text, nullable=False)
     objetivos = Column(Text, nullable=False)
-    estado = Column(SQLEnum(EstadoProyecto), default=EstadoProyecto.BORRADOR, index=True)
+    estado = Column(
+        SQLEnum(EstadoProyecto, values_callable=lambda obj: [e.value for e in obj]),
+        default=EstadoProyecto.BORRADOR,
+        index=True
+    )
     presupuesto_estimado = Column(Numeric(14, 2), default=0.00)
     presupuesto_asignado = Column(Numeric(14, 2))
     presupuesto_ejecutado = Column(Numeric(14, 2), default=0.00)
@@ -35,6 +41,7 @@ class Project(Base):
     items_presupuesto = relationship("BudgetItem", back_populates="proyecto", cascade="all, delete-orphan")
     gastos = relationship("Expense", back_populates="proyecto", cascade="all, delete-orphan")
 
+
 class BudgetItem(Base):
     __tablename__ = "presupuesto_items"
     
@@ -46,3 +53,4 @@ class BudgetItem(Base):
     
     # Relación
     proyecto = relationship("Project", back_populates="items_presupuesto")
+
