@@ -25,7 +25,7 @@ const routes = [
   },
   
   // ============================================
-  // 👨‍🎓 RUTAS DE ESTUDIANTE
+  // 👨‍🎓 RUTAS DE ESTUDIANTE (CON EXPENSES)
   // ============================================
   {
     path: '/student',
@@ -63,9 +63,15 @@ const routes = [
     component: () => import('../views/Student/RegisterExpense.vue'),
     meta: { requiresAuth: true, role: 'estudiante' }
   },
+  {
+    path: '/student/project/:projectId/expense/:expenseId',
+    name: 'ExpenseDetail',
+    component: () => import('../views/Student/ExpenseDetail.vue'),
+    meta: { requiresAuth: true, role: 'estudiante' }
+  },
   
   // ============================================
-  // 👨‍🏫 RUTAS DE PROFESOR
+  // 👨‍🏫 RUTAS DE PROFESOR (CON EXPENSES)
   // ============================================
   {
     path: '/professor',
@@ -79,9 +85,15 @@ const routes = [
     component: () => import('../views/Student/ProjectDetail.vue'),
     meta: { requiresAuth: true, role: 'profesor' }
   },
+  {
+    path: '/professor/project/:id/expenses',
+    name: 'ProfessorExpenses',
+    component: () => import('../views/Professor/ExpensesView.vue'),
+    meta: { requiresAuth: true, role: 'profesor' }
+  },
   
   // ============================================
-  // 💼 RUTAS DE FINANCIERA
+  // 💼 RUTAS DE FINANCIERA (CON EXPENSES)
   // ============================================
   {
     path: '/finance',
@@ -95,9 +107,15 @@ const routes = [
     component: () => import('../views/Student/ProjectDetail.vue'),
     meta: { requiresAuth: true, role: 'financiera' }
   },
+  {
+    path: '/finance/project/:id/expenses',
+    name: 'FinanceExpenses',
+    component: () => import('../views/Finance/ExpensesView.vue'),
+    meta: { requiresAuth: true, role: 'financiera' }
+  },
   
   // ============================================
-  // 🔍 RUTAS DE AUDITOR
+  // 🔍 RUTAS DE AUDITOR (CON EXPENSES)
   // ============================================
   {
     path: '/auditor',
@@ -105,7 +123,24 @@ const routes = [
     component: () => import('../views/Auditor/AuditorDashboard.vue'),
     meta: { requiresAuth: true, role: 'auditor' }
   },
- 
+  {
+    path: '/auditor/project/:id',
+    name: 'AuditorProjectDetail',
+    component: () => import('../views/Student/ProjectDetail.vue'),
+    meta: { requiresAuth: true, role: 'auditor' }
+  },
+  {
+    path: '/auditor/project/:id/expenses',
+    name: 'AuditorExpenses',
+    component: () => import('../views/Auditor/ExpensesView.vue'),
+    meta: { requiresAuth: true, role: 'auditor' }
+  },
+  {
+    path: '/auditor/project/:id/audit',
+    name: 'AuditLog',
+    component: () => import('../views/Auditor/AuditLog.vue'),
+    meta: { requiresAuth: true, role: 'auditor' }
+  },
   
   // ============================================
   // 👑 RUTAS DE ADMINISTRADOR
@@ -116,11 +151,45 @@ const routes = [
     component: () => import('../views/Admin/AdminDashboard.vue'),
     meta: { requiresAuth: true, role: 'superusuario' }
   },
-
+  {
+    path: '/admin/projects',
+    name: 'AdminProjects',
+    component: () => import('../views/Admin/AdminProjects.vue'),
+    meta: { requiresAuth: true, role: 'superusuario' }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('../views/Admin/AdminUsers.vue'),
+    meta: { requiresAuth: true, role: 'superusuario' }
+  },
+  {
+    path: '/admin/reports',
+    name: 'AdminReports',
+    component: () => import('../views/Admin/AdminReports.vue'),
+    meta: { requiresAuth: true, role: 'superusuario' }
+  },
+  {
+    path: '/admin/settings',
+    name: 'AdminSettings',
+    component: () => import('../views/Admin/AdminSettings.vue'),
+    meta: { requiresAuth: true, role: 'superusuario' }
+  },
+  {
+    path: '/admin/project/:id',
+    name: 'AdminProjectDetail',
+    component: () => import('../views/Student/ProjectDetail.vue'),
+    meta: { requiresAuth: true, role: 'superusuario' }
+  },
   
   // ============================================
   // ❌ RUTA 404
   // ============================================
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFound.vue')
+  }
 ]
 
 const router = createRouter({
@@ -128,28 +197,15 @@ const router = createRouter({
   routes
 })
 
-// ============================================
-// 🔒 GUARD DE AUTENTICACIÓN
-// ============================================
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   
-  console.log('🛣️ Navegando a:', to.path)
-  console.log('👤 Usuario:', authStore.user?.nombre_completo)
-  console.log('🔐 Autenticado:', authStore.isAuthenticated)
-  
-  // Verificar si la ruta requiere autenticación
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.warn('⚠️ Ruta protegida, redirigiendo a login')
     next('/login')
     return
   }
   
-  // Verificar rol si la ruta lo requiere
   if (to.meta.role && authStore.user?.rol !== to.meta.role) {
-    console.warn('⚠️ Rol incorrecto:', authStore.user?.rol, 'requerido:', to.meta.role)
-    
-    // Redirigir al dashboard correspondiente según su rol
     const dashboards = {
       'estudiante': '/student',
       'profesor': '/professor',
@@ -157,17 +213,10 @@ router.beforeEach((to, from, next) => {
       'auditor': '/auditor',
       'superusuario': '/admin'
     }
-    
-    const userDashboard = dashboards[authStore.user?.rol]
-    if (userDashboard && to.path !== userDashboard) {
-      next(userDashboard)
-    } else {
-      next('/')
-    }
+    next(dashboards[authStore.user?.rol] || '/')
     return
   }
   
-  // Si está en login/register y ya está autenticado, redirigir a dashboard
   if ((to.path === '/login' || to.path === '/register') && authStore.isAuthenticated) {
     const dashboards = {
       'estudiante': '/student',
@@ -180,7 +229,6 @@ router.beforeEach((to, from, next) => {
     return
   }
   
-  console.log('✅ Navegación permitida')
   next()
 })
 

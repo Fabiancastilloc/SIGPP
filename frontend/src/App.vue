@@ -1,35 +1,31 @@
 <template>
   <div id="app">
-    <Navbar v-if="isAuthenticated" />
-    <main class="main-content">
-      <router-view />
-    </main>
+    <Navbar />
+    <router-view />
   </div>
 </template>
 
 <script>
 import Navbar from './components/Navbar.vue'
-import { useAuthStore } from './store'
-import { computed } from 'vue'
 
 export default {
   name: 'App',
-  components: { Navbar },
-  setup() {
-    const authStore = useAuthStore()
-    const isAuthenticated = computed(() => authStore.isAuthenticated)
-    
-    return { isAuthenticated }
+  components: {
+    Navbar
   }
 }
 </script>
 
 <style>
-#app {
-  min-height: 100vh;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.main-content {
-  min-height: calc(100vh - 70px);
+#app {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>

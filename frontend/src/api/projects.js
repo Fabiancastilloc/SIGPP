@@ -24,6 +24,11 @@ const projectsApi = {
   activateProject: (projectId, activationData) => {
     return apiClient.post(`/projects/${projectId}/activate`, activationData)
   }
+
+  
+
+
+
 }
 
 export default projectsApi
