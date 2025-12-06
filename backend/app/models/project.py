@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Numeric, Enum, ForeignKey, DateT
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
+from sqlalchemy.orm import relationship
 import enum
 
 class ProjectStatus(enum.Enum):
@@ -39,3 +40,5 @@ class Project(Base):
     profesor = relationship("User", foreign_keys=[profesor_id], back_populates="projects_advised")
     expenses = relationship("Expense", back_populates="project")
     history = relationship("ProjectHistory", back_populates="project")
+
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")

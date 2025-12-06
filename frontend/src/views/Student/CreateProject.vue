@@ -1,226 +1,410 @@
+<!-- frontend/src/views/Student/CreateProject.vue -->
 <template>
   <div class="create-project-page">
     <div class="container">
+      <!-- Header con mejor contraste -->
       <div class="page-header">
-        <router-link to="/student" class="btn-back">
-          ← Volver al Dashboard
-        </router-link>
-        <h1>✨ Crear Nuevo Proyecto</h1>
-        <p>Completa la información de tu propuesta de investigación</p>
+        <button @click="goBack" class="btn-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver
+        </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="project-form">
-        <!-- Información Básica -->
-        <div class="form-card">
-          <div class="card-header">
-            <div class="header-icon">📝</div>
-            <h3>Información Básica</h3>
+      <!-- Hero Header -->
+      <div class="hero-header">
+        <div class="hero-icon">🚀</div>
+        <div class="hero-content">
+          <h1>Crear Nueva Propuesta</h1>
+          <p>Completa todos los campos para enviar tu proyecto</p>
+        </div>
+      </div>
+
+      <!-- Progress Steps - Mejorado -->
+      <div class="progress-container">
+        <div class="progress-steps">
+          <div :class="['step-item', { active: currentStep === 1, completed: currentStep > 1 }]">
+            <div class="step-circle">
+              <span v-if="currentStep > 1" class="check-icon">✓</span>
+              <span v-else>1</span>
+            </div>
+            <span class="step-label">Información Básica</span>
           </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">
+          
+          <div class="step-connector" :class="{ active: currentStep > 1 }"></div>
+          
+          <div :class="['step-item', { active: currentStep === 2, completed: currentStep > 2 }]">
+            <div class="step-circle">
+              <span v-if="currentStep > 2" class="check-icon">✓</span>
+              <span v-else>2</span>
+            </div>
+            <span class="step-label">Equipo de Trabajo</span>
+          </div>
+          
+          <div class="step-connector" :class="{ active: currentStep > 2 }"></div>
+          
+          <div :class="['step-item', { active: currentStep === 3, completed: currentStep > 3 }]">
+            <div class="step-circle">
+              <span v-if="currentStep > 3" class="check-icon">✓</span>
+              <span v-else>3</span>
+            </div>
+            <span class="step-label">Presupuesto</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario con mejor contraste -->
+      <form @submit.prevent="handleSubmit" class="project-form">
+        
+        <!-- ============ PASO 1: Información Básica ============ -->
+        <div v-show="currentStep === 1" class="form-step">
+          <div class="step-header">
+            <div class="step-header-icon">📋</div>
+            <div>
+              <h2>Información del Proyecto</h2>
+              <p>Define el alcance y objetivos de tu propuesta</p>
+            </div>
+          </div>
+
+          <div class="form-content">
+            <!-- Nombre del Proyecto -->
+            <div class="form-field">
+              <label class="field-label">
+                <span class="label-text">Nombre del Proyecto</span>
                 <span class="label-required">*</span>
-                Nombre del Proyecto
               </label>
               <input 
                 v-model="formData.nombre" 
-                class="form-control" 
-                placeholder="Ej: Sistema de Gestión de Inventario para Pymes"
+                type="text" 
+                class="field-input"
+                placeholder="Ej: Sistema de Gestión de Proyectos de Grado"
                 required
                 maxlength="200"
               />
-              <small class="form-hint">
-                <span class="hint-icon">💡</span>
-                Usa un nombre descriptivo y único ({{ formData.nombre.length }}/200 caracteres)
-              </small>
+              <div class="field-footer">
+                <span class="field-hint">Un título claro y descriptivo</span>
+                <span class="field-counter">{{ formData.nombre.length }}/200</span>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">
+            <!-- Descripción -->
+            <div class="form-field">
+              <label class="field-label">
+                <span class="label-text">Descripción Detallada</span>
                 <span class="label-required">*</span>
-                Descripción Detallada
               </label>
               <textarea 
                 v-model="formData.descripcion" 
-                class="form-control" 
-                rows="6"
-                placeholder="Describe detalladamente en qué consiste tu proyecto, el problema que resuelve y su alcance..."
+                class="field-textarea"
+                placeholder="Describe el problema que resuelve tu proyecto, la metodología a usar, tecnologías y el impacto esperado. Sé específico y detallado."
                 required
+                rows="8"
                 minlength="100"
-                maxlength="2000"
               ></textarea>
-              <small class="form-hint" :class="{ 'hint-error': formData.descripcion.length < 100 && formData.descripcion.length > 0 }">
-                <span class="hint-icon">{{ formData.descripcion.length >= 100 ? '✅' : '⚠️' }}</span>
-                {{ formData.descripcion.length }}/2000 caracteres (mínimo 100 requerido)
-              </small>
+              <div class="field-footer">
+                <span 
+                  :class="['field-hint', { error: formData.descripcion.length < 100 }]"
+                >
+                  {{ formData.descripcion.length < 100 ? '⚠️ Mínimo 100 caracteres' : '✓ Descripción válida' }}
+                </span>
+                <span class="field-counter">{{ formData.descripcion.length }}/100</span>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">
+            <!-- Objetivos -->
+            <div class="form-field">
+              <label class="field-label">
+                <span class="label-text">Objetivos del Proyecto</span>
                 <span class="label-required">*</span>
-                Objetivos del Proyecto
               </label>
               <textarea 
                 v-model="formData.objetivos" 
-                class="form-control" 
-                rows="6"
-                placeholder="Define los objetivos generales y específicos de tu proyecto..."
+                class="field-textarea"
+                placeholder="• Objetivo General: [Describe el propósito principal]&#10;&#10;• Objetivos Específicos:&#10;  1. [Objetivo específico 1]&#10;  2. [Objetivo específico 2]&#10;  3. [Objetivo específico 3]"
                 required
-                minlength="50"
-                maxlength="1500"
+                rows="7"
               ></textarea>
-              <small class="form-hint">
-                <span class="hint-icon">🎯</span>
-                Especifica qué esperas lograr ({{ formData.objetivos.length }}/1500 caracteres)
-              </small>
+              <div class="field-footer">
+                <span class="field-hint">💡 Define objetivos SMART (Específicos, Medibles, Alcanzables)</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Información Académica -->
-        <div class="form-card">
-          <div class="card-header">
-            <div class="header-icon">👨‍🏫</div>
-            <h3>Información Académica</h3>
+        <!-- ============ PASO 2: Equipo de Trabajo ============ -->
+        <div v-show="currentStep === 2" class="form-step">
+          <div class="step-header">
+            <div class="step-header-icon">👥</div>
+            <div>
+              <h2>Equipo de Trabajo</h2>
+              <p>Selecciona tu asesor y agrega colaboradores</p>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">
+
+          <div class="form-content">
+            <!-- Selección de Profesor -->
+            <div class="form-field">
+              <label class="field-label">
+                <span class="label-text">Profesor Asesor</span>
                 <span class="label-required">*</span>
-                Profesor Asesor
               </label>
               
-              <div v-if="loadingProfesores" class="loading-select">
-                <div class="spinner-small"></div>
-                <span>Cargando profesores...</span>
+              <div class="custom-select" :class="{ open: selectOpen }" @click="toggleSelect">
+                <div class="select-trigger">
+                  <div class="select-value">
+                    <span v-if="!formData.profesor_id" class="select-placeholder">
+                      🔍 Selecciona un profesor asesor
+                    </span>
+                    <span v-else class="select-selected">
+                      👨‍🏫 {{ getProfesorName() }}
+                    </span>
+                  </div>
+                  <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                
+                <div v-show="selectOpen" class="select-dropdown">
+                  <div 
+                    v-for="prof in profesores" 
+                    :key="prof.id"
+                    class="select-option"
+                    :class="{ selected: formData.profesor_id === prof.id }"
+                    @click.stop="selectProfesor(prof.id)"
+                  >
+                    <div class="option-avatar">
+                      {{ getInitials(prof.nombre_completo) }}
+                    </div>
+                    <div class="option-info">
+                      <strong>{{ prof.nombre_completo }}</strong>
+                      <span>{{ prof.email }}</span>
+                    </div>
+                    <svg v-if="formData.profesor_id === prof.id" class="option-check" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               
-              <select 
-                v-else
-                v-model="formData.profesor_id" 
-                class="form-control" 
-                required
-                @change="onProfesorChange"
-              >
-                <option value="">-- Seleccione un profesor asesor --</option>
-                <option 
-                  v-for="profesor in profesores" 
-                  :key="profesor.id" 
-                  :value="profesor.id"
-                >
-                  {{ profesor.nombre_completo }} - {{ profesor.email }}
-                </option>
-              </select>
-              
-              <small class="form-hint">
-                <span class="hint-icon">👨‍🏫</span>
-                Profesor que guiará y asesorará tu proyecto
-              </small>
-
-              <!-- Info del profesor seleccionado -->
-              <div v-if="selectedProfesor" class="profesor-info">
-                <div class="profesor-avatar">
-                  {{ getInitials(selectedProfesor.nombre_completo) }}
-                </div>
-                <div class="profesor-details">
-                  <strong>{{ selectedProfesor.nombre_completo }}</strong>
-                  <span>{{ selectedProfesor.email }}</span>
-                </div>
+              <div v-if="formData.profesor_id" class="field-footer">
+                <span class="field-hint success">✅ Profesor seleccionado correctamente</span>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">
-                <span class="label-required">*</span>
-                Presupuesto Estimado
+            <!-- Colaboradores -->
+            <div class="form-field">
+              <label class="field-label">
+                <span class="label-text">Colaboradores</span>
+                <span class="label-optional">(Opcional)</span>
               </label>
-              <div class="input-group">
-                <span class="input-prefix">$</span>
+              
+              <div class="collaborators-section">
+                <div class="section-banner">
+                  <div class="banner-icon">🎓</div>
+                  <div class="banner-content">
+                    <strong>Estudiantes de tu carrera disponibles</strong>
+                    <p>Selecciona compañeros para trabajar en equipo</p>
+                  </div>
+                </div>
+
+                <!-- Buscador -->
+                <div class="search-field">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input 
+                    v-model="collaboratorSearch" 
+                    type="text" 
+                    class="search-input"
+                    placeholder="Buscar por nombre o código institucional..."
+                  />
+                </div>
+
+                <!-- Lista de estudiantes -->
+                <div v-if="filteredStudents.length > 0" class="students-list">
+                  <div 
+                    v-for="student in filteredStudents" 
+                    :key="student.id"
+                    class="student-item"
+                    :class="{ selected: isSelected(student.id) }"
+                    @click="toggleCollaborator(student)"
+                  >
+                    <div class="student-avatar">
+                      {{ getInitials(student.nombre_completo) }}
+                    </div>
+                    <div class="student-details">
+                      <strong class="student-name">{{ student.nombre_completo }}</strong>
+                      <span class="student-code">{{ student.codigo_institucional }}</span>
+                      <span class="student-badge">Semestre {{ student.semestre }}</span>
+                    </div>
+                    <div class="student-checkbox">
+                      <div v-if="isSelected(student.id)" class="checkbox-checked">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div v-else class="checkbox-unchecked"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Colaboradores seleccionados -->
+                <div v-if="selectedCollaborators.length > 0" class="selected-collaborators">
+                  <div class="selected-header">
+                    <strong>✅ Colaboradores Seleccionados</strong>
+                    <span class="selected-count">{{ selectedCollaborators.length }}</span>
+                  </div>
+                  <div class="selected-list">
+                    <div 
+                      v-for="collab in selectedCollaborators" 
+                      :key="collab.id"
+                      class="selected-chip"
+                    >
+                      <span class="chip-avatar">{{ getInitials(collab.nombre_completo) }}</span>
+                      <span class="chip-name">{{ collab.nombre_completo }}</span>
+                      <button 
+                        type="button" 
+                        @click="removeCollaborator(collab.id)" 
+                        class="chip-remove"
+                        title="Eliminar"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Estado vacío -->
+                <div v-if="availableStudents.length === 0" class="empty-message">
+                  <div class="empty-icon">👥</div>
+                  <p class="empty-text">No hay estudiantes de tu carrera disponibles</p>
+                  <span class="empty-hint">Serás el único miembro del equipo</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PASO 3: Presupuesto ============ -->
+        <div v-show="currentStep === 3" class="form-step">
+          <div class="step-header">
+            <div class="step-header-icon">💰</div>
+            <div>
+              <h2>Presupuesto del Proyecto</h2>
+              <p>Define el presupuesto estimado para la ejecución</p>
+            </div>
+          </div>
+
+          <div class="form-content">
+            <!-- Presupuesto -->
+            <div class="form-field">
+              <label class="field-label">
+                <span class="label-text">Presupuesto Estimado</span>
+                <span class="label-required">*</span>
+              </label>
+              <div class="currency-input">
+                <span class="currency-symbol">$</span>
                 <input 
                   v-model.number="formData.presupuesto_estimado" 
                   type="number" 
-                  class="form-control" 
-                  placeholder="5000000"
-                  min="100000"
-                  max="100000000"
-                  step="100000"
+                  class="currency-field"
+                  placeholder="0"
                   required
-                  @input="formatPresupuesto"
+                  min="0"
+                  step="1000"
                 />
-                <span class="input-suffix">COP</span>
+                <span class="currency-code">COP</span>
               </div>
-              <small class="form-hint">
-                <span class="hint-icon">💵</span>
-                <span v-if="formData.presupuesto_estimado">
-                  Presupuesto: {{ formatMoney(formData.presupuesto_estimado) }} COP
-                </span>
-                <span v-else>
-                  Estimación en pesos colombianos (entre $100,000 y $100,000,000)
-                </span>
-              </small>
+              <div class="field-footer">
+                <span class="field-hint">💡 Incluye materiales, equipos y otros gastos</span>
+                <span class="currency-formatted">{{ formatCurrency(formData.presupuesto_estimado) }}</span>
+              </div>
+            </div>
+
+            <!-- Resumen del proyecto -->
+            <div class="project-summary">
+              <h3 class="summary-title">📊 Resumen del Proyecto</h3>
+              
+              <div class="summary-cards">
+                <div class="summary-card card-primary">
+                  <div class="card-icon">👥</div>
+                  <div class="card-content">
+                    <span class="card-label">Equipo de Trabajo</span>
+                    <strong class="card-value">{{ selectedCollaborators.length + 1 }} miembros</strong>
+                  </div>
+                </div>
+
+                <div class="summary-card card-success">
+                  <div class="card-icon">💰</div>
+                  <div class="card-content">
+                    <span class="card-label">Presupuesto</span>
+                    <strong class="card-value">{{ formatCurrency(formData.presupuesto_estimado) }}</strong>
+                  </div>
+                </div>
+
+                <div class="summary-card card-info">
+                  <div class="card-icon">👨‍🏫</div>
+                  <div class="card-content">
+                    <span class="card-label">Profesor Asesor</span>
+                    <strong class="card-value">{{ getProfesorName() }}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="summary-details">
+                <div class="detail-row">
+                  <span class="detail-label">📝 Nombre del proyecto:</span>
+                  <span class="detail-value">{{ formData.nombre || 'Sin definir' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">📋 Descripción:</span>
+                  <span class="detail-value">{{ formData.descripcion.substring(0, 100) }}{{ formData.descripcion.length > 100 ? '...' : '' }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Resumen -->
-        <div class="form-card summary-card">
-          <div class="card-header">
-            <div class="header-icon">📋</div>
-            <h3>Resumen de la Propuesta</h3>
-          </div>
-          <div class="card-body">
-            <div class="summary-grid">
-              <div class="summary-item">
-                <span class="summary-label">Nombre:</span>
-                <span class="summary-value">{{ formData.nombre || 'Sin especificar' }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Profesor:</span>
-                <span class="summary-value">{{ selectedProfesor?.nombre_completo || 'No seleccionado' }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Presupuesto:</span>
-                <span class="summary-value">{{ formData.presupuesto_estimado ? '$' + formatMoney(formData.presupuesto_estimado) : 'No especificado' }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Estado inicial:</span>
-                <span class="summary-value status-draft">📝 Borrador</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Alertas de validación -->
-        <div v-if="validationErrors.length > 0" class="alert alert-warning">
-          <div class="alert-header">
-            <span class="alert-icon">⚠️</span>
-            <strong>Completa los siguientes campos:</strong>
-          </div>
-          <ul class="alert-list">
-            <li v-for="(error, index) in validationErrors" :key="index">{{ error }}</li>
-          </ul>
-        </div>
-
-        <!-- Error del servidor -->
-        <div v-if="error" class="alert alert-error">
-          <span class="alert-icon">❌</span>
-          {{ error }}
-        </div>
-
-        <!-- Botones de acción -->
-        <div class="form-actions">
-          <button type="button" @click="goBack" class="btn btn-secondary btn-lg" :disabled="loading">
-            <span class="btn-icon">↩️</span>
-            Cancelar
-          </button>
+        <!-- Botones de navegación -->
+        <div class="form-navigation">
           <button 
-            type="submit" 
-            class="btn btn-primary btn-lg" 
-            :disabled="loading || !isFormValid"
+            v-if="currentStep > 1" 
+            type="button" 
+            @click="prevStep" 
+            class="nav-btn nav-btn-secondary"
           >
-            <span v-if="!loading" class="btn-icon">🚀</span>
-            <span v-if="!loading">Crear Proyecto</span>
-            <span v-else class="loading-spinner">⏳ Creando...</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Anterior
+          </button>
+          
+          <div class="nav-spacer"></div>
+          
+          <button 
+            v-if="currentStep < 3" 
+            type="button" 
+            @click="nextStep" 
+            class="nav-btn nav-btn-primary"
+            :disabled="!canProceed()"
+          >
+            Siguiente
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          
+          <button 
+            v-if="currentStep === 3" 
+            type="submit" 
+            class="nav-btn nav-btn-success"
+            :disabled="submitting || !canProceed()"
+          >
+            <svg v-if="submitting" class="btn-spinner" viewBox="0 0 24 24">
+              ircle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="50" stroke-dashoffset="25" />
+            </svg>
+            <span v-else>🚀 Crear Proyecto</span>
           </button>
         </div>
       </form>
@@ -234,6 +418,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store'
 import projectsApi from '../../api/projects'
 import catalogsApi from '../../api/catalogs'
+import membersApi from '../../api/members'
 
 export default {
   name: 'CreateProject',
@@ -241,537 +426,1314 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     
+    const currentStep = ref(1)
+    const submitting = ref(false)
+    const selectOpen = ref(false)
+    
     const formData = ref({
       nombre: '',
       descripcion: '',
       objetivos: '',
       profesor_id: '',
-      presupuesto_estimado: null
+      presupuesto_estimado: 0
     })
     
     const profesores = ref([])
-    const loadingProfesores = ref(true)
-    const loading = ref(false)
-    const error = ref('')
+    const availableStudents = ref([])
+    const selectedCollaborators = ref([])
+    const collaboratorSearch = ref('')
     
-    // Profesor seleccionado
-    const selectedProfesor = computed(() => {
-      if (!formData.value.profesor_id) return null
-      return profesores.value.find(p => p.id === formData.value.profesor_id)
+    const filteredStudents = computed(() => {
+      if (!collaboratorSearch.value) {
+        return availableStudents.value
+      }
+      
+      const query = collaboratorSearch.value.toLowerCase()
+      return availableStudents.value.filter(s => 
+        s.nombre_completo.toLowerCase().includes(query) ||
+        s.codigo_institucional.toLowerCase().includes(query)
+      )
     })
     
-    // Validaciones
-    const validationErrors = computed(() => {
-      const errors = []
-      
-      if (!formData.value.nombre.trim()) {
-        errors.push('El nombre del proyecto es obligatorio')
-      }
-      
-      if (formData.value.descripcion.length < 100) {
-        errors.push('La descripción debe tener al menos 100 caracteres')
-      }
-      
-      if (formData.value.objetivos.length < 50) {
-        errors.push('Los objetivos deben tener al menos 50 caracteres')
-      }
-      
-      if (!formData.value.profesor_id) {
-        errors.push('Debes seleccionar un profesor asesor')
-      }
-      
-      if (!formData.value.presupuesto_estimado || formData.value.presupuesto_estimado < 100000) {
-        errors.push('El presupuesto debe ser al menos $100,000 COP')
-      }
-      
-      return errors
-    })
-    
-    const isFormValid = computed(() => {
-      return validationErrors.value.length === 0
-    })
-    
-    // Cargar profesores desde la BD
     const loadProfesores = async () => {
-      loadingProfesores.value = true
       try {
-        console.log('📡 Cargando profesores desde la BD...')
         const response = await catalogsApi.getProfesores()
         profesores.value = response.data
-        console.log('✅ Profesores cargados:', profesores.value.length)
-        
-        // Validación: Verificar que solo sean profesores
-        if (profesores.value.length === 0) {
-          error.value = 'No hay profesores disponibles. Contacta al administrador.'
-        }
       } catch (err) {
-        console.error('❌ Error cargando profesores:', err)
-        error.value = 'Error al cargar la lista de profesores. Por favor recarga la página.'
-      } finally {
-        loadingProfesores.value = false
+        console.error('Error cargando profesores:', err)
+        alert('Error al cargar la lista de profesores')
       }
     }
     
-    const onProfesorChange = () => {
-      console.log('👨‍🏫 Profesor seleccionado:', selectedProfesor.value)
+    const loadAvailableStudents = async () => {
+      try {
+        const response = await catalogsApi.getStudentsSameCareer()
+        availableStudents.value = response.data
+      } catch (err) {
+        console.error('Error cargando estudiantes:', err)
+      }
     }
     
-    const formatPresupuesto = () => {
-      // Validar que sea un número positivo
-      if (formData.value.presupuesto_estimado < 0) {
-        formData.value.presupuesto_estimado = 0
+    const toggleSelect = () => {
+      selectOpen.value = !selectOpen.value
+    }
+    
+    const selectProfesor = (id) => {
+      formData.value.profesor_id = id
+      selectOpen.value = false
+    }
+    
+    const toggleCollaborator = (student) => {
+      const index = selectedCollaborators.value.findIndex(s => s.id === student.id)
+      if (index > -1) {
+        selectedCollaborators.value.splice(index, 1)
+      } else {
+        selectedCollaborators.value.push(student)
+      }
+    }
+    
+    const removeCollaborator = (studentId) => {
+      selectedCollaborators.value = selectedCollaborators.value.filter(s => s.id !== studentId)
+    }
+    
+    const isSelected = (studentId) => {
+      return selectedCollaborators.value.some(s => s.id === studentId)
+    }
+    
+    const canProceed = () => {
+      if (currentStep.value === 1) {
+        return formData.value.nombre.length > 0 && 
+               formData.value.descripcion.length >= 100 &&
+               formData.value.objetivos.length > 0
+      }
+      if (currentStep.value === 2) {
+        return formData.value.profesor_id !== ''
+      }
+      if (currentStep.value === 3) {
+        return formData.value.presupuesto_estimado > 0
+      }
+      return true
+    }
+    
+    const nextStep = () => {
+      if (canProceed()) {
+        currentStep.value++
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        alert('Por favor completa todos los campos requeridos')
+      }
+    }
+    
+    const prevStep = () => {
+      if (currentStep.value > 1) {
+        currentStep.value--
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
     
     const handleSubmit = async () => {
-      error.value = ''
-      
-      // Validación final
-      if (!isFormValid.value) {
-        error.value = 'Por favor completa todos los campos correctamente'
+      if (!canProceed()) {
+        alert('Por favor completa todos los campos')
         return
       }
       
-      loading.value = true
+      submitting.value = true
       
       try {
-        console.log('📤 Enviando proyecto:', formData.value)
-        console.log('👤 Usuario actual:', authStore.user)
-        
-        const response = await projectsApi.createProject(formData.value)
-        
-        console.log('✅ Proyecto creado exitosamente:', response.data)
-        
-        // Mostrar mensaje de éxito
-        alert(`✅ Proyecto creado exitosamente!\n\nCódigo: ${response.data.id}\nEstado: Borrador\n\nPuedes encontrarlo en tu dashboard.`)
-        
-        // Redirigir al dashboard
-        router.push('/student')
-      } catch (err) {
-        console.error('❌ Error creando proyecto:', err)
-        
-        // Mostrar error específico del backend
-        if (err.response?.data?.detail) {
-          error.value = err.response.data.detail
-        } else if (err.response?.status === 400) {
-          error.value = 'Datos inválidos. Verifica todos los campos.'
-        } else if (err.response?.status === 401) {
-          error.value = 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.'
-          setTimeout(() => router.push('/login'), 2000)
-        } else {
-          error.value = 'Error al crear el proyecto. Intenta nuevamente.'
+        const projectData = {
+          nombre: formData.value.nombre,
+          descripcion: formData.value.descripcion,
+          objetivos: formData.value.objetivos,
+          profesor_id: formData.value.profesor_id,
+          presupuesto_estimado: formData.value.presupuesto_estimado
         }
+        
+        const response = await projectsApi.createProject(projectData)
+        const projectId = response.data.id
+        
+        if (selectedCollaborators.value.length > 0) {
+          for (const collab of selectedCollaborators.value) {
+            try {
+              await membersApi.addMember(projectId, collab.id)
+            } catch (err) {
+              console.error('Error agregando colaborador:', err)
+            }
+          }
+        }
+        
+        alert('🎉 ¡Proyecto creado exitosamente!')
+        router.push('/student')
+        
+      } catch (err) {
+        console.error('Error al crear proyecto:', err)
+        alert(err.response?.data?.detail || 'Error al crear el proyecto')
       } finally {
-        loading.value = false
+        submitting.value = false
       }
     }
     
-    const goBack = () => {
-      if (confirm('¿Estás seguro de cancelar? Se perderán los datos ingresados.')) {
-        router.push('/student')
-      }
-    }
+    const goBack = () => router.push('/student')
     
     const getInitials = (name) => {
       return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     }
     
-    const formatMoney = (value) => {
-      return new Intl.NumberFormat('es-CO').format(value)
+    const formatCurrency = (value) => {
+      if (!value) return '$0 COP'
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
+      }).format(value)
+    }
+    
+    const getProfesorName = () => {
+      if (!formData.value.profesor_id) return 'No seleccionado'
+      const prof = profesores.value.find(p => p.id === formData.value.profesor_id)
+      return prof ? prof.nombre_completo : 'No seleccionado'
     }
     
     onMounted(() => {
       loadProfesores()
+      loadAvailableStudents()
     })
     
     return {
+      currentStep,
+      submitting,
+      selectOpen,
       formData,
       profesores,
-      loadingProfesores,
-      loading,
-      error,
-      selectedProfesor,
-      validationErrors,
-      isFormValid,
-      onProfesorChange,
-      formatPresupuesto,
+      availableStudents,
+      filteredStudents,
+      selectedCollaborators,
+      collaboratorSearch,
+      toggleSelect,
+      selectProfesor,
+      toggleCollaborator,
+      removeCollaborator,
+      isSelected,
+      nextStep,
+      prevStep,
+      canProceed,
       handleSubmit,
       goBack,
       getInitials,
-      formatMoney
+      formatCurrency,
+      getProfesorName
     }
   }
 }
 </script>
 
 <style scoped>
+/* ==================== VARIABLES ==================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 .create-project-page {
-  padding: 30px 0;
-  min-height: calc(100vh - 70px);
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f35 50%, #0a0f1e 100%);
+  padding: 32px 16px;
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 40px;
-  position: relative;
-}
-
-.btn-back {
-  position: absolute;
-  left: 0;
-  top: 0;
-  padding: 12px 24px;
-  background: white;
-  border-radius: 10px;
-  text-decoration: none;
-  color: var(--gray-700);
-  font-weight: 600;
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid var(--gray-200);
-}
-
-.btn-back:hover {
-  background: var(--gray-100);
-  transform: translateX(-4px);
-  border-color: var(--primary-color);
-}
-
-.page-header h1 {
-  font-size: 36px;
-  margin-bottom: 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.page-header p {
-  font-size: 16px;
-  color: var(--gray-600);
-}
-
-.project-form {
+.container {
   max-width: 900px;
   margin: 0 auto;
 }
 
-.form-card {
-  background: white;
-  border-radius: 16px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  border: 2px solid var(--gray-200);
-  transition: border-color 0.3s;
-}
-
-.form-card:hover {
-  border-color: var(--primary-color);
-}
-
-.card-header {
-  padding: 24px 32px;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-bottom: 2px solid var(--gray-200);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-icon {
-  font-size: 28px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 20px;
-  color: var(--gray-900);
-  font-weight: 700;
-}
-
-.card-body {
-  padding: 32px;
-}
-
-.form-group {
+/* ==================== HEADER ==================== */
+.page-header {
   margin-bottom: 24px;
 }
 
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: var(--gray-700);
-  font-size: 14px;
-}
-
-.label-required {
-  color: var(--danger-color);
-  margin-right: 4px;
-}
-
-.form-control {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid var(--gray-300);
-  border-radius: 10px;
-  font-size: 14px;
-  transition: all 0.3s;
-  font-family: inherit;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-control::placeholder {
-  color: var(--gray-400);
-}
-
-.form-hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--gray-600);
-  display: flex;
+.btn-back {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-}
-
-.hint-error {
-  color: var(--danger-color);
-}
-
-.hint-icon {
-  font-size: 14px;
-}
-
-.input-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-prefix {
-  position: absolute;
-  left: 16px;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  color: #f1f5f9;
   font-weight: 700;
-  color: var(--gray-600);
-  font-size: 16px;
-  z-index: 1;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.input-group .form-control {
-  padding-left: 40px;
-  padding-right: 60px;
+.btn-back:hover {
+  background: #334155;
+  border-color: #d4af37;
+  transform: translateX(-4px);
 }
 
-.input-suffix {
-  position: absolute;
-  right: 16px;
-  font-weight: 600;
-  color: var(--gray-500);
-  font-size: 12px;
-  text-transform: uppercase;
-}
-
-.loading-select {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--gray-50);
-  border: 2px solid var(--gray-300);
-  border-radius: 10px;
-  color: var(--gray-600);
-}
-
-.spinner-small {
+.btn-back svg {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--gray-200);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
-.profesor-info {
+/* ==================== HERO HEADER ==================== */
+.hero-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  border-radius: 12px;
-  margin-top: 12px;
-  border: 2px solid #93c5fd;
+  gap: 24px;
+  padding: 32px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  border: 3px solid #3b82f6;
+  border-radius: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
 }
 
-.profesor-avatar {
-  width: 50px;
-  height: 50px;
+.hero-icon {
+  font-size: 72px;
+  filter: drop-shadow(0 4px 12px rgba(212, 175, 55, 0.6));
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.hero-content h1 {
+  font-size: 32px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.hero-content p {
+  font-size: 16px;
+  color: #e0e7ff;
+  font-weight: 600;
+}
+
+/* ==================== PROGRESS STEPS ==================== */
+.progress-container {
+  margin-bottom: 40px;
+  padding: 24px;
+  background: rgba(30, 41, 59, 0.6);
+  border-radius: 16px;
+  border: 2px solid #334155;
+}
+
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.step-item.active,
+.step-item.completed {
+  opacity: 1;
+}
+
+.step-circle {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #1e293b;
+  border: 3px solid #475569;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.profesor-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profesor-details strong {
-  font-size: 15px;
-  color: var(--gray-900);
-}
-
-.profesor-details span {
-  font-size: 13px;
-  color: var(--gray-600);
-}
-
-.summary-card {
-  border: 2px solid var(--primary-color);
-  background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.summary-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid var(--gray-200);
-}
-
-.summary-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--gray-600);
-  text-transform: uppercase;
-}
-
-.summary-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--gray-900);
-}
-
-.status-draft {
-  color: #f59e0b;
-}
-
-.alert {
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 24px;
-}
-
-.alert-warning {
-  background: #fef3c7;
-  border: 2px solid #f59e0b;
-  color: #92400e;
-}
-
-.alert-error {
-  background: #fee2e2;
-  border: 2px solid #ef4444;
-  color: #991b1b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.alert-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.alert-icon {
+  font-weight: 900;
   font-size: 20px;
+  color: #94a3b8;
+  transition: all 0.3s ease;
 }
 
-.alert-list {
-  margin: 8px 0 0 28px;
-  padding: 0;
+.step-item.active .step-circle {
+  background: linear-gradient(135deg, #d4af37 0%, #b8960f 100%);
+  border-color: #d4af37;
+  color: #0a0f1e;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+  transform: scale(1.1);
 }
 
-.alert-list li {
+.step-item.completed .step-circle {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+}
+
+.check-icon {
+  font-size: 24px;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.step-connector {
+  flex: 1;
+  height: 4px;
+  background: #334155;
+  margin: 0 12px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.step-connector.active {
+  background: linear-gradient(90deg, #d4af37 0%, #10b981 100%);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+}
+
+/* ==================== FORM ==================== */
+.project-form {
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.form-step {
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 3px solid #d4af37;
+}
+
+.step-header-icon {
+  font-size: 48px;
+  filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.4));
+}
+
+.step-header h2 {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
   margin-bottom: 4px;
 }
 
-.form-actions {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  margin-top: 32px;
+.step-header p {
+  font-size: 14px;
+  color: #cbd5e1;
+  font-weight: 600;
 }
 
-.form-actions .btn {
-  min-width: 200px;
+/* ==================== FORM FIELDS ==================== */
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.btn-icon {
+.label-text {
+  font-size: 15px;
+  font-weight: 800;
+  color: #f1f5f9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.label-required {
+  color: #ef4444;
+  font-weight: 900;
   font-size: 18px;
 }
 
-.loading-spinner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.label-optional {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: none;
 }
 
-@media (max-width: 768px) {
-  .btn-back {
-    position: static;
-    display: inline-block;
-    margin-bottom: 20px;
-  }
-  
-  .page-header {
-    text-align: left;
-  }
-  
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .form-actions .btn {
-    width: 100%;
-  }
+.field-input,
+.field-textarea {
+  width: 100%;
+  padding: 16px 20px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  color: #f1f5f9;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.field-input::placeholder,
+.field-textarea::placeholder {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.field-input:focus,
+.field-textarea:focus {
+  outline: none;
+  background: #1e293b;
+  border-color: #d4af37;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2);
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+.field-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.field-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.field-hint.error {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.field-hint.success {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.field-counter {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+/* ==================== CUSTOM SELECT ==================== */
+.custom-select {
+  position: relative;
+}
+
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-trigger:hover {
+  border-color: #d4af37;
+}
+
+.custom-select.open .select-trigger {
+  border-color: #d4af37;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2);
+}
+
+.select-value {
+  flex: 1;
+}
+
+.select-placeholder {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.select-selected {
+  color: #f1f5f9;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.select-arrow {
+  width: 20px;
+  height: 20px;
+  color: #d4af37;
+  transition: transform 0.3s ease;
+}
+
+.custom-select.open .select-arrow {
+  transform: rotate(180deg);
+}
+
+.select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #0f172a;
+  border: 2px solid #d4af37;
+  border-top: none;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.select-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.select-dropdown::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.select-dropdown::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #1e293b;
+}
+
+.select-option:last-child {
+  border-bottom: none;
+}
+
+.select-option:hover {
+  background: #1e293b;
+}
+
+.select-option.selected {
+  background: rgba(212, 175, 55, 0.15);
+}
+
+.option-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.option-info strong {
+  font-size: 14px;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.option-info span {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.option-check {
+  width: 24px;
+  height: 24px;
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+/* ==================== COLLABORATORS SECTION ==================== */
+.collaborators-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(30, 64, 175, 0.1));
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+}
+
+.banner-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.5));
+}
+
+.banner-content strong {
+  display: block;
+  font-size: 16px;
+  color: #ffffff;
+  margin-bottom: 4px;
+  font-weight: 800;
+}
+
+.banner-content p {
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* ==================== SEARCH FIELD ==================== */
+.search-field {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 16px 20px 16px 52px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  color: #f1f5f9;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2);
+}
+
+/* ==================== STUDENTS LIST ==================== */
+.students-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.students-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.students-list::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 4px;
+}
+
+.students-list::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+
+.student-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.student-item:hover {
+  background: #1e293b;
+  border-color: #475569;
+  transform: translateX(4px);
+}
+
+.student-item.selected {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1));
+  border-color: #d4af37;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+}
+
+.student-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.student-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-name {
+  font-size: 15px;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.student-code {
+  font-size: 12px;
+  color: #94a3b8;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+}
+
+.student-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid #d4af37;
+  border-radius: 12px;
+  font-size: 11px;
+  color: #d4af37;
+  font-weight: 800;
+  width: fit-content;
+}
+
+.student-checkbox {
+  flex-shrink: 0;
+}
+
+.checkbox-checked,
+.checkbox-unchecked {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.checkbox-checked {
+  background: #10b981;
+}
+
+.checkbox-checked svg {
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+}
+
+.checkbox-unchecked {
+  border: 3px solid #475569;
+  background: transparent;
+}
+
+/* ==================== SELECTED COLLABORATORS ==================== */
+.selected-collaborators {
+  padding: 20px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+}
+
+.selected-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.selected-header strong {
+  font-size: 15px;
+  color: #10b981;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selected-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #10b981;
+  color: #ffffff;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.selected-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.selected-chip:hover {
+  border-color: #d4af37;
+}
+
+.chip-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 11px;
+}
+
+.chip-name {
+  font-size: 14px;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.chip-remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: none;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.chip-remove:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* ==================== CURRENCY INPUT ==================== */
+.currency-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.currency-input:focus-within {
+  border-color: #d4af37;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2);
+}
+
+.currency-symbol {
+  font-size: 24px;
+  font-weight: 900;
+  color: #d4af37;
+}
+
+.currency-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  font-size: 20px;
+  font-weight: 800;
+  outline: none;
+}
+
+.currency-field::placeholder {
+  color: #64748b;
+}
+
+.currency-code {
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  padding: 6px 12px;
+  background: #1e293b;
+  border-radius: 6px;
+}
+
+.currency-formatted {
+  font-size: 18px;
+  font-weight: 900;
+  color: #d4af37;
+}
+
+/* ==================== PROJECT SUMMARY ==================== */
+.project-summary {
+  padding: 28px;
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.2), rgba(30, 58, 138, 0.1));
+  border: 3px solid #3b82f6;
+  border-radius: 16px;
+}
+
+.summary-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid;
+}
+
+.summary-card.card-primary {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+}
+
+.summary-card.card-success {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+}
+
+.summary-card.card-info {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: #d4af37;
+}
+
+.card-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-label {
+  font-size: 11px;
+  color: #cbd5e1;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-value {
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.summary-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 2px solid #334155;
+}
+
+.detail-row {
+  display: flex;
+  gap: 12px;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 700;
+  min-width: 180px;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: #f1f5f9;
+  font-weight: 600;
+  flex: 1;
+}
+
+/* ==================== NAVIGATION BUTTONS ==================== */
+.form-navigation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 3px solid #334155;
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.nav-btn-secondary {
+  background: #1e293b;
+  border: 2px solid #475569;
+  color: #f1f5f9;
+}
+
+.nav-btn-secondary:hover:not(:disabled) {
+  background: #334155;
+  border-color: #d4af37;
+  transform: translateX(-4px);
+}
+
+.nav-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+.nav-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(59, 130, 246, 0.6);
+}
+
+.nav-btn-success {
+  background: linear-gradient(135deg, #d4af37 0%, #b8960f 100%);
+  color: #0a0f1e;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
+  font-size: 16px;
+  padding: 18px 40px;
+}
+
+.nav-btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.6);
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ==================== EMPTY STATE ==================== */
+.empty-message {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-icon {
+  font-size: 72px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: #f1f5f9;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.empty-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .create-project-page {
+    padding: 20px 12px;
+  }
+
+  .hero-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .hero-icon {
+    font-size: 56px;
+  }
+
+  .hero-content h1 {
+    font-size: 24px;
+  }
+
+  .progress-steps {
+    flex-direction: column;
+  }
+
+  .step-connector {
+    width: 4px;
+    height: 32px;
+    margin: 8px 0;
+  }
+
+  .project-form {
+    padding: 24px;
+  }
+
+  .step-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .form-navigation {
+    flex-direction: column;
+  }
+
+  .nav-spacer {
+    display: none;
+  }
+
+  .nav-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detail-label {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .select-dropdown {
+    max-height: 240px;
+  }
+
+  .students-list {
+    max-height: 300px;
+  }
 }
 </style>

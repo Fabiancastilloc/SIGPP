@@ -10,44 +10,142 @@
         <p>Cargando detalle del gasto...</p>
       </div>
 
-      <div v-else-if="expense" class="detail-card">
+      <div v-else-if="expense" class="detail-wrapper">
         <div class="detail-header">
-          <h1>{{ getCategoryIcon(expense.categoria) }} {{ expense.concepto }}</h1>
-          <span class="category-badge">{{ expense.categoria }}</span>
+          <div class="header-left">
+            <span class="category-badge">{{ getCategoryIcon(expense.categoria) }} {{ expense.categoria }}</span>
+            <h1>{{ expense.concepto }}</h1>
+          </div>
+          <div class="amount-display">${{ formatMoney(expense.monto) }}</div>
         </div>
 
-        <div class="detail-content">
-          <div class="detail-section">
-            <h3>📝 Descripción</h3>
-            <p>{{ expense.descripcion }}</p>
+        <div class="detail-grid">
+          <div class="detail-main">
+            <div class="detail-card">
+              <h3>📝 Descripción</h3>
+              <p>{{ expense.descripcion || 'Sin descripción' }}</p>
+            </div>
+
+            <div class="detail-card">
+              <h3>📋 Información del Gasto</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="icon">📅</span>
+                  <div>
+                    <span class="label">Fecha del Gasto</span>
+                    <span class="value">{{ formatDate(expense.fecha) }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <span class="icon">💰</span>
+                  <div>
+                    <span class="label">Monto</span>
+                    <span class="value">${{ formatMoney(expense.monto) }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <span class="icon">🏷️</span>
+                  <div>
+                    <span class="label">Categoría</span>
+                    <span class="value">{{ expense.categoria }}</span>
+                  </div>
+                </div>
+
+                <div v-if="expense.factura_numero" class="info-item">
+                  <span class="icon">📄</span>
+                  <div>
+                    <span class="label">Factura</span>
+                    <span class="value">{{ expense.factura_numero }}</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <span class="icon">🕐</span>
+                  <div>
+                    <span class="label">Registrado</span>
+                    <span class="value">{{ formatDateTime(expense.created_at) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="expense.soporte_url" class="detail-card">
+              <h3>📎 Soporte Adjunto</h3>
+              <div class="soporte-preview">
+                <div class="soporte-info">
+                  <span class="soporte-icon">{{ getSoporteIcon(expense.soporte_url) }}</span>
+                  <span class="soporte-name">{{ expense.soporte_url }}</span>
+                </div>
+                <button @click="downloadSoporte" class="btn btn-download">
+                  ⬇️ Descargar
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="label">💰 Monto</span>
-              <span class="value amount">${{ formatMoney(expense.monto) }}</span>
+          <div class="detail-sidebar">
+            <div class="sidebar-card">
+              <h3>⚙️ Acciones</h3>
+              <div class="actions-list">
+                <button @click="goBack" class="btn-action primary">
+                  <span class="icon">↩️</span>
+                  Volver a Gastos
+                </button>
+                <button @click="confirmDelete" class="btn-action danger">
+                  <span class="icon">🗑️</span>
+                  Eliminar Gasto
+                </button>
+              </div>
             </div>
 
-            <div class="detail-item">
-              <span class="label">📅 Fecha</span>
-              <span class="value">{{ formatDate(expense.fecha) }}</span>
-            </div>
-
-            <div v-if="expense.factura_numero" class="detail-item">
-              <span class="label">📄 Factura</span>
-              <span class="value">{{ expense.factura_numero }}</span>
-            </div>
-
-            <div class="detail-item">
-              <span class="label">🕐 Registrado</span>
-              <span class="value">{{ formatDate(expense.created_at) }}</span>
+            <div class="sidebar-card stats">
+              <h3>📊 Estadísticas</h3>
+              <div class="stat-item">
+                <span class="stat-label">Presupuesto del Proyecto</span>
+                <span class="stat-value">${{ formatMoney(project?.presupuesto_asignado || 0) }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Total Ejecutado</span>
+                <span class="stat-value executed">${{ formatMoney(project?.presupuesto_ejecutado || 0) }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Disponible</span>
+                <span class="stat-value available">${{ formatMoney(available) }}</span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="detail-actions">
-          <button @click="goBack" class="btn btn-secondary">Volver</button>
-          <button @click="confirmDelete" class="btn btn-danger">🗑️ Eliminar Gasto</button>
+    <!-- Modal de confirmación de eliminación -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click="cancelDelete">
+      <div class="modal-box" @click.stop>
+        <div class="modal-header danger">
+          <h2>⚠️ Confirmar Eliminación</h2>
+          <button @click="cancelDelete" class="close-btn">×</button>
+        </div>
+        
+        <div class="modal-content">
+          <div class="warning-box">
+            <p><strong>¿Estás seguro de eliminar este gasto?</strong></p>
+            <p>Concepto: <strong>{{ expense.concepto }}</strong></p>
+            <p>Monto: <strong>${{ formatMoney(expense.monto) }}</strong></p>
+          </div>
+          
+          <div class="alert-danger">
+            <span>⚠️</span>
+            <p>Esta acción no se puede deshacer. El monto se devolverá al presupuesto disponible.</p>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="cancelDelete" class="btn-modal btn-cancel">Cancelar</button>
+          <button @click="deleteExpense" class="btn-modal btn-delete" :disabled="deleting">
+            {{ deleting ? '⏳ Eliminando...' : '🗑️ Eliminar' }}
+          </button>
         </div>
       </div>
     </div>
@@ -57,6 +155,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import projectsApi from '../../api/projects'
 import expensesApi from '../../api/expenses'
 
 export default {
@@ -66,50 +165,110 @@ export default {
     const router = useRouter()
     
     const expense = ref(null)
+    const project = ref(null)
     const loading = ref(true)
+    const showDeleteModal = ref(false)
+    const deleting = ref(false)
     
     const projectId = computed(() => parseInt(route.params.projectId))
     const expenseId = computed(() => parseInt(route.params.expenseId))
     
-    const loadExpense = async () => {
+    const available = computed(() => {
+      if (!project.value) return 0
+      return (project.value.presupuesto_asignado || 0) - (project.value.presupuesto_ejecutado || 0)
+    })
+    
+    const loadData = async () => {
       loading.value = true
       try {
-        // Aquí necesitas crear un endpoint para obtener un gasto específico
-        const response = await expensesApi.getExpenseById(expenseId.value)
-        expense.value = response.data
+        const [expenseRes, projectRes] = await Promise.all([
+          expensesApi.getExpenseById(projectId.value, expenseId.value),
+          projectsApi.getProjectById(projectId.value)
+        ])
+        expense.value = expenseRes.data
+        project.value = projectRes.data
       } catch (err) {
         console.error('Error:', err)
-        alert('Error al cargar gasto')
+        alert('Error al cargar detalle del gasto')
+        goBack()
       } finally {
         loading.value = false
       }
     }
     
-    const confirmDelete = async () => {
-      if (!confirm('¿Eliminar este gasto?')) return
-      
+    const downloadSoporte = async () => {
       try {
-        await expensesApi.deleteExpense(expenseId.value)
-        alert('✅ Gasto eliminado')
-        router.push(`/student/project/${projectId.value}/expenses`)
+        const response = await expensesApi.downloadSoporte(expense.value.soporte_url)
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', expense.value.soporte_url)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
       } catch (err) {
-        alert('Error al eliminar gasto')
+        console.error('Error:', err)
+        alert('Error al descargar soporte')
       }
     }
     
-    const goBack = () => router.push(`/student/project/${projectId.value}/expenses`)
+    const confirmDelete = () => {
+      showDeleteModal.value = true
+    }
+    
+    const cancelDelete = () => {
+      showDeleteModal.value = false
+    }
+    
+    const deleteExpense = async () => {
+      deleting.value = true
+      try {
+        await expensesApi.deleteExpense(projectId.value, expenseId.value)
+        alert('✅ Gasto eliminado exitosamente')
+        router.push(`/student/project/${projectId.value}/expenses`)
+      } catch (err) {
+        console.error('Error:', err)
+        alert('❌ Error al eliminar gasto')
+      } finally {
+        deleting.value = false
+        showDeleteModal.value = false
+      }
+    }
+    
+    const goBack = () => {
+      router.push(`/student/project/${projectId.value}/expenses`)
+    }
     
     const getCategoryIcon = (category) => {
-      const icons = { 'Material': '🛠️', 'Equipo': '💻', 'Servicio': '⚙️', 'Transporte': '🚗', 'Otro': '📦' }
+      const icons = {
+        'Material': '🛠️',
+        'Equipo': '💻',
+        'Servicio': '⚙️',
+        'Transporte': '🚗',
+        'Otro': '📦'
+      }
       return icons[category] || '📦'
     }
     
+    const getSoporteIcon = (filename) => {
+      const ext = filename.split('.').pop().toLowerCase()
+      if (ext === 'pdf') return '📄'
+      if (['jpg', 'jpeg', 'png'].includes(ext)) return '🖼️'
+      return '📎'
+    }
+    
     const formatMoney = (val) => new Intl.NumberFormat('es-CO').format(val)
-    const formatDate = (dateStr) => new Date(dateStr).toLocaleString('es-CO')
+    const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
+    const formatDateTime = (dateStr) => new Date(dateStr).toLocaleString('es-CO')
     
-    onMounted(() => loadExpense())
+    onMounted(() => loadData())
     
-    return { expense, loading, projectId, confirmDelete, goBack, getCategoryIcon, formatMoney, formatDate }
+    return {
+      expense, project, loading, showDeleteModal, deleting,
+      projectId, expenseId, available,
+      downloadSoporte, confirmDelete, cancelDelete, deleteExpense, goBack,
+      getCategoryIcon, getSoporteIcon, formatMoney, formatDate, formatDateTime
+    }
   }
 }
 </script>
@@ -122,7 +281,7 @@ export default {
 }
 
 .container {
-  max-width: 900px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -136,9 +295,14 @@ export default {
   font-weight: 600;
   margin-bottom: 24px;
   border: 2px solid var(--gray-200);
+  transition: all 0.3s;
 }
 
-.detail-card {
+.btn-back:hover {
+  border-color: #667eea;
+}
+
+.detail-wrapper {
   background: white;
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
@@ -148,18 +312,20 @@ export default {
 .detail-header {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  padding: 32px;
+  padding: 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.detail-header h1 {
-  font-size: 24px;
-  margin: 0;
+.header-left h1 {
+  font-size: 28px;
+  margin: 12px 0 0;
+  color: white;
 }
 
 .category-badge {
+  display: inline-block;
   padding: 8px 16px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 20px;
@@ -167,78 +333,200 @@ export default {
   font-weight: 600;
 }
 
-.detail-content {
-  padding: 32px;
-}
-
-.detail-section {
-  margin-bottom: 32px;
-}
-
-.detail-section h3 {
-  font-size: 18px;
-  margin-bottom: 12px;
+.amount-display {
+  font-size: 48px;
+  font-weight: 800;
+  text-align: right;
 }
 
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  padding: 40px;
 }
 
-.detail-item {
+.detail-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  border: 2px solid var(--gray-200);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.detail-card h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: var(--gray-900);
+}
+
+.detail-card p {
+  line-height: 1.7;
+  color: var(--gray-700);
+  margin: 0;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  align-items: start;
+  gap: 12px;
   padding: 16px;
   background: var(--gray-50);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border-radius: 10px;
 }
 
-.detail-item .label {
-  font-size: 12px;
+.info-item .icon {
+  font-size: 24px;
+}
+
+.info-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item .label {
+  font-size: 11px;
   font-weight: 600;
   color: var(--gray-600);
   text-transform: uppercase;
 }
 
-.detail-item .value {
-  font-size: 16px;
+.info-item .value {
+  font-size: 15px;
   font-weight: 700;
   color: var(--gray-900);
 }
 
-.detail-item .amount {
-  font-size: 24px;
-  color: #f59e0b;
-}
-
-.detail-actions {
-  padding: 24px 32px;
-  background: var(--gray-50);
-  border-top: 2px solid var(--gray-200);
+.soporte-preview {
   display: flex;
-  gap: 16px;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: 10px;
 }
 
-.btn {
-  padding: 12px 24px;
+.soporte-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.soporte-icon {
+  font-size: 32px;
+}
+
+.soporte-name {
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.btn-download {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
 }
 
-.btn-secondary {
-  background: var(--gray-200);
-  color: var(--gray-700);
+.btn-download:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
 }
 
-.btn-danger {
-  background: #ef4444;
-  color: white;
+.sidebar-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  border: 2px solid var(--gray-200);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-card h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+  color: var(--gray-900);
+}
+
+.actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.btn-action .icon {
+  font-size: 18px;
+}
+
+.btn-action.primary {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.btn-action.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 2px solid #ef4444;
+}
+
+.btn-action:hover {
+  transform: translateX(4px);
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gray-900);
+}
+
+.stat-value.executed {
+  color: #f59e0b;
+}
+
+.stat-value.available {
+  color: #10b981;
 }
 
 .loading-state {
@@ -260,8 +548,132 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 768px) {
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.modal-box {
+  background: white;
+  border-radius: 20px;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 24px;
+  border-bottom: 2px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header.danger {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #991b1b;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: var(--gray-500);
+  line-height: 1;
+  padding: 0;
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.warning-box {
+  padding: 20px;
+  background: var(--gray-50);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.warning-box p {
+  margin-bottom: 8px;
+}
+
+.alert-danger {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 12px;
+  color: #991b1b;
+}
+
+.alert-danger span {
+  font-size: 24px;
+}
+
+.alert-danger p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-footer {
+  padding: 20px 24px;
+  border-top: 2px solid var(--gray-200);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-modal {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.btn-cancel {
+  background: var(--gray-200);
+  color: var(--gray-700);
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1024px) {
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-grid {
     grid-template-columns: 1fr;
   }
 }

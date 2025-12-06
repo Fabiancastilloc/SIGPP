@@ -1,57 +1,67 @@
+<!-- frontend/src/views/Home.vue -->
 <template>
-  <div class="home">
-    <!-- Hero Section Mejorado -->
+  <div class="home-page">
+    
+    <!-- Hero Section Ultra Premium -->
     <section class="hero-section">
       <div class="hero-background">
         <div class="gradient-orb orb-1"></div>
         <div class="gradient-orb orb-2"></div>
         <div class="gradient-orb orb-3"></div>
         <div class="particles">
-          <div v-for="i in 50" :key="i" class="particle" 
-               :style="{ 
-                 left: Math.random() * 100 + '%', 
-                 animationDelay: Math.random() * 3 + 's',
-                 animationDuration: (3 + Math.random() * 4) + 's'
-               }">
-          </div>
+          <div 
+            v-for="i in 30" 
+            :key="i" 
+            class="particle"
+            :style="{
+              left: Math.random() * 100 + '%',
+              animationDelay: Math.random() * 5 + 's',
+              animationDuration: (3 + Math.random() * 4) + 's'
+            }"
+          ></div>
         </div>
       </div>
-      
+
       <div class="hero-content container">
-        <div class="hero-badge fade-slide-up">
+        <div class="hero-badge fade-in">
           <span class="badge-icon">🎓</span>
-          Universidad de Cartagena
+          <span>Universidad de Cartagena</span>
         </div>
-        
-        <h1 class="hero-title fade-slide-up" style="animation-delay: 0.1s">
-          Sistema Integral de Gestión<br/>
+
+        <h1 class="hero-title fade-in" style="animation-delay: 0.1s">
+          Sistema Integral de Gestión<br>
           <span class="gradient-text">de Propuestas y Proyectos</span>
         </h1>
-        
-        <p class="hero-subtitle fade-slide-up" style="animation-delay: 0.2s">
-          La plataforma digital definitiva para gestionar el ciclo completo de proyectos académicos
-          con transparencia, eficiencia y control total del presupuesto
+
+        <p class="hero-subtitle fade-in" style="animation-delay: 0.2s">
+          La plataforma digital definitiva para gestionar el ciclo completo de proyectos académicos 
+          con transparencia, eficiencia y control total del presupuesto.
         </p>
-        
-        <div class="hero-cta fade-slide-up" style="animation-delay: 0.3s">
+
+        <div class="hero-cta fade-in" style="animation-delay: 0.3s">
           <router-link to="/login" class="cta-btn cta-primary">
-            <span class="btn-icon">🚀</span>
-            Iniciar Sesión
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span>Iniciar Sesión</span>
             <span class="btn-arrow">→</span>
           </router-link>
+
           <router-link to="/register" class="cta-btn cta-secondary">
-            <span class="btn-icon">✨</span>
-            Crear Cuenta Gratis
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <span>Crear Cuenta Gratis</span>
           </router-link>
         </div>
-        
-        <div class="hero-stats fade-slide-up" style="animation-delay: 0.4s">
+
+        <div class="hero-stats fade-in" style="animation-delay: 0.4s">
           <div class="stat-box">
             <div class="stat-number">500+</div>
             <div class="stat-label">Proyectos Gestionados</div>
           </div>
           <div class="stat-box">
-            <div class="stat-number">1000+</div>
+            <div class="stat-number">1,000+</div>
             <div class="stat-label">Estudiantes Activos</div>
           </div>
           <div class="stat-box">
@@ -64,14 +74,14 @@
           </div>
         </div>
       </div>
-      
+
       <div class="scroll-indicator">
         <span>Descubre más</span>
         <div class="scroll-arrow">↓</div>
       </div>
     </section>
 
-    <!-- Features Section Premium -->
+    <!-- Features Section -->
     <section class="features-section">
       <div class="container">
         <div class="section-header">
@@ -81,9 +91,13 @@
             Herramientas poderosas diseñadas para simplificar la gestión de proyectos académicos
           </p>
         </div>
-        
+
         <div class="features-grid">
-          <div class="feature-card" v-for="(feature, index) in features" :key="index">
+          <div 
+            v-for="(feature, index) in features" 
+            :key="index"
+            class="feature-card"
+          >
             <div class="feature-icon-wrapper">
               <div class="feature-icon">{{ feature.icon }}</div>
               <div class="feature-icon-bg"></div>
@@ -91,14 +105,15 @@
             <h3>{{ feature.title }}</h3>
             <p>{{ feature.description }}</p>
             <div class="feature-link">
-              Saber más <span>→</span>
+              <span>Saber más</span>
+              <span>→</span>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Workflow Visual -->
+    <!-- Workflow Section -->
     <section class="workflow-section">
       <div class="container">
         <div class="section-header">
@@ -108,9 +123,13 @@
             De la idea a la ejecución en cuatro pasos simples
           </p>
         </div>
-        
+
         <div class="workflow-timeline">
-          <div class="timeline-item" v-for="(step, index) in workflowSteps" :key="index">
+          <div 
+            v-for="(step, index) in workflowSteps" 
+            :key="index"
+            class="timeline-item"
+          >
             <div class="timeline-marker">
               <div class="marker-number">{{ index + 1 }}</div>
               <div class="marker-pulse"></div>
@@ -133,8 +152,13 @@
           <div class="benefit-content">
             <span class="section-badge">Beneficios</span>
             <h2 class="section-title">¿Por qué elegir SIGPP?</h2>
+            
             <div class="benefits-list">
-              <div class="benefit-item" v-for="(benefit, index) in benefits" :key="index">
+              <div 
+                v-for="(benefit, index) in benefits" 
+                :key="index"
+                class="benefit-item"
+              >
                 <div class="benefit-icon">{{ benefit.icon }}</div>
                 <div>
                   <h4>{{ benefit.title }}</h4>
@@ -142,10 +166,13 @@
                 </div>
               </div>
             </div>
+
             <router-link to="/register" class="cta-btn cta-primary">
-              Comenzar Ahora <span class="btn-arrow">→</span>
+              Comenzar Ahora
+              <span class="btn-arrow">→</span>
             </router-link>
           </div>
+
           <div class="benefit-visual">
             <div class="visual-card card-1">
               <div class="card-header">
@@ -159,6 +186,7 @@
                 <div class="chart-bar" style="height: 95%"></div>
               </div>
             </div>
+
             <div class="visual-card card-2">
               <div class="card-header">
                 <span class="card-icon">💰</span>
@@ -166,12 +194,13 @@
               </div>
               <div class="progress-ring">
                 <svg viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" class="ring-bg"/>
-                  <circle cx="50" cy="50" r="40" class="ring-progress"/>
+                  ircle cx="50" cy="50" r="40" class="ring-bg" />
+                  ircle cx="50" cy="50" r="40" class="ring-progress" />
                 </svg>
                 <div class="ring-text">75%</div>
               </div>
             </div>
+
             <div class="visual-card card-3">
               <div class="status-item status-success">
                 <span class="status-dot"></span>
@@ -191,21 +220,24 @@
       </div>
     </section>
 
-    <!-- CTA Final -->
+    <!-- Final CTA -->
     <section class="final-cta-section">
       <div class="container">
         <div class="cta-content">
           <h2>¿Listo para transformar tu gestión de proyectos?</h2>
           <p>Únete a cientos de estudiantes y profesores que ya confían en SIGPP</p>
+          
           <div class="cta-buttons">
             <router-link to="/register" class="cta-btn cta-large cta-primary">
-              Crear Cuenta Gratis <span class="btn-arrow">→</span>
+              Crear Cuenta Gratis
+              <span class="btn-arrow">→</span>
             </router-link>
             <router-link to="/login" class="cta-btn cta-large cta-secondary">
               Iniciar Sesión
             </router-link>
           </div>
-          <p class="cta-note">✨ No requiere tarjeta de crédito · Configuración en 2 minutos</p>
+
+          <p class="cta-note">✓ Configuración en 2 minutos • Sin tarjeta de crédito</p>
         </div>
       </div>
     </section>
@@ -219,78 +251,78 @@ export default {
     return {
       features: [
         {
-          icon: '📝',
+          icon: '🚀',
           title: 'Gestión Completa',
-          description: 'Crea, edita y gestiona propuestas con flujo de aprobación multinivel y seguimiento en tiempo real'
+          description: 'Crea, edita y gestiona propuestas con flujo de aprobación multinivel y seguimiento en tiempo real.'
         },
         {
           icon: '💰',
           title: 'Control Financiero',
-          description: 'Seguimiento detallado de gastos, presupuesto disponible y notificaciones automáticas de alertas'
+          description: 'Seguimiento detallado de gastos, presupuesto disponible y notificaciones automáticas de alertas.'
         },
         {
           icon: '📊',
           title: 'Reportes Avanzados',
-          description: 'Genera reportes profesionales en PDF y Excel con análisis completo y trazabilidad total'
+          description: 'Genera reportes profesionales en PDF y Excel con análisis completo y trazabilidad total.'
         },
         {
-          icon: '🔐',
+          icon: '🔒',
           title: 'Seguridad Total',
-          description: 'Control de acceso basado en roles (RBAC) con autenticación segura y cifrado de datos'
+          description: 'Control de acceso basado en roles (RBAC) con autenticación segura y cifrado de datos.'
         },
         {
           icon: '🔔',
           title: 'Notificaciones',
-          description: 'Alertas en tiempo real sobre cambios de estado, acciones pendientes y actualizaciones importantes'
+          description: 'Alertas en tiempo real sobre cambios de estado, acciones pendientes y actualizaciones importantes.'
         },
         {
           icon: '📱',
           title: 'Multiplataforma',
-          description: 'Acceso desde cualquier dispositivo con conexión a internet de forma segura y responsive'
+          description: 'Acceso desde cualquier dispositivo con conexión a internet de forma segura y responsive.'
         }
       ],
       workflowSteps: [
         {
           icon: '📝',
           title: 'Crear Propuesta',
-          description: 'El estudiante documenta su proyecto con objetivos, descripción y presupuesto estimado'
+          description: 'El estudiante documenta su proyecto con objetivos, descripción y presupuesto estimado.'
         },
         {
           icon: '👨‍🏫',
           title: 'Validación Académica',
-          description: 'El profesor revisa, valida o devuelve la propuesta con comentarios detallados'
+          description: 'El profesor revisa, valida o devuelve la propuesta con comentarios detallados.'
         },
         {
-          icon: '💼',
+          icon: '💵',
           title: 'Aprobación Financiera',
-          description: 'El equipo financiero asigna presupuesto y activa el proyecto para ejecución'
+          description: 'El equipo financiero asigna presupuesto y activa el proyecto para ejecución.'
         },
         {
-          icon: '🚀',
+          icon: '✅',
           title: 'Ejecución y Seguimiento',
-          description: 'Registro de gastos, aprobaciones y monitoreo continuo del progreso del proyecto'
+          description: 'Registro de gastos, aprobaciones y monitoreo continuo del progreso del proyecto.'
         }
       ],
       benefits: [
         {
-          icon: '⚡',
+          icon: '⏱️',
           title: 'Ahorra Tiempo',
-          description: 'Automatiza procesos repetitivos y reduce trámites administrativos'
+          description: 'Automatiza procesos repetitivos y reduce trámites administrativos.'
         },
         {
-          icon: '🎯',
+          icon: '📈',
           title: 'Mayor Control',
-          description: 'Visibilidad completa del estado de proyectos y presupuesto en tiempo real'
+          description: 'Visibilidad completa del estado de proyectos y presupuesto en tiempo real.'
         },
         {
           icon: '🤝',
           title: 'Colaboración',
-          description: 'Comunicación fluida entre estudiantes, profesores y área financiera'
+          description: 'Comunicación fluida entre estudiantes, profesores y área financiera.'
         },
         {
-          icon: '📈',
+          icon: '🔍',
           title: 'Trazabilidad',
-          description: 'Historial completo de cambios, aprobaciones y movimientos financieros'
+          description: 'Historial completo de cambios, aprobaciones y movimientos financieros.'
         }
       ]
     }
@@ -299,18 +331,19 @@ export default {
 </script>
 
 <style scoped>
-.home {
+/* Base */
+.home-page {
   overflow-x: hidden;
 }
 
-/* Hero Section Premium */
+/* Hero Section Ultra Premium */
 .hero-section {
   position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f35 50%, #0a0f1e 100%);
   overflow: hidden;
 }
 
@@ -326,35 +359,35 @@ export default {
 .gradient-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
+  filter: blur(100px);
+  opacity: 0.3;
   animation: float-orb 20s infinite ease-in-out;
 }
 
 .orb-1 {
   width: 600px;
   height: 600px;
-  background: linear-gradient(135deg, #ff6b6b, #ffd93d);
+  background: linear-gradient(135deg, #d4af37, #f3e5ab);
   top: -300px;
   left: -300px;
 }
 
 .orb-2 {
-  width: 400px;
-  height: 400px;
-  background: linear-gradient(135deg, #6bcf7f, #4facfe);
-  bottom: -200px;
-  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  bottom: -250px;
+  right: -250px;
   animation-delay: -10s;
 }
 
 .orb-3 {
-  width: 500px;
-  height: 500px;
-  background: linear-gradient(135deg, #f093fb, #f5576c);
+  width: 450px;
+  height: 450px;
+  background: linear-gradient(135deg, #10b981, #059669);
   top: 50%;
   right: 10%;
-  animation-delay: -15s;
+  animation-delay: -5s;
 }
 
 @keyframes float-orb {
@@ -362,10 +395,10 @@ export default {
     transform: translate(0, 0) scale(1);
   }
   33% {
-    transform: translate(30px, -30px) scale(1.1);
+    transform: translate(50px, -50px) scale(1.1);
   }
   66% {
-    transform: translate(-20px, 20px) scale(0.9);
+    transform: translate(-30px, 30px) scale(0.9);
   }
 }
 
@@ -377,9 +410,9 @@ export default {
 
 .particle {
   position: absolute;
-  width: 4px;
-  height: 4px;
-  background: white;
+  width: 3px;
+  height: 3px;
+  background: rgba(212, 175, 55, 0.6);
   border-radius: 50%;
   opacity: 0;
   animation: particle-float infinite ease-in-out;
@@ -391,10 +424,10 @@ export default {
     opacity: 0;
   }
   10% {
-    opacity: 0.8;
+    opacity: 1;
   }
   90% {
-    opacity: 0.8;
+    opacity: 1;
   }
   100% {
     transform: translateY(-100vh) translateX(50px);
@@ -402,147 +435,171 @@ export default {
   }
 }
 
+/* Hero Content */
 .hero-content {
   position: relative;
   z-index: 1;
   text-align: center;
   color: white;
   padding: 80px 20px;
-  max-width: 1000px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: rgba(255, 255, 255, 0.2);
+  gap: 10px;
+  padding: 12px 28px;
+  background: rgba(212, 175, 55, 0.15);
   backdrop-filter: blur(20px);
   border-radius: 50px;
-  font-size: 14px;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  margin-bottom: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  font-size: 15px;
+  font-weight: 700;
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  margin-bottom: 32px;
+  box-shadow: 0 8px 32px rgba(212, 175, 55, 0.2);
 }
 
 .badge-icon {
-  font-size: 20px;
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(212, 175, 55, 0.5));
 }
 
 .hero-title {
-  font-size: 4rem;
+  font-size: 4.5rem;
   font-weight: 900;
   line-height: 1.1;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   color: white;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #fff, #f0f0f0);
+  background: linear-gradient(90deg, #d4af37, #f3e5ab, #d4af37);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  background-size: 200% auto;
+  animation: gradient-flow 3s linear infinite;
+}
+
+@keyframes gradient-flow {
+  to {
+    background-position: 200% center;
+  }
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
-  line-height: 1.7;
-  opacity: 0.95;
-  max-width: 700px;
-  margin: 0 auto 40px;
+  font-size: 1.35rem;
+  line-height: 1.8;
+  opacity: 0.9;
+  max-width: 800px;
+  margin: 0 auto 48px;
+  color: #e0e7ff;
 }
 
+/* CTA Buttons */
 .hero-cta {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 60px;
+  margin-bottom: 64px;
 }
 
 .cta-btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 32px;
-  border-radius: 50px;
-  font-weight: 700;
+  gap: 12px;
+  padding: 18px 36px;
+  border-radius: 12px;
+  font-weight: 800;
   font-size: 16px;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cta-btn svg {
+  width: 22px;
+  height: 22px;
 }
 
 .cta-primary {
-  background: white;
-  color: #667eea;
+  background: linear-gradient(135deg, #d4af37 0%, #b8960f 100%);
+  color: #0a0f1e;
 }
 
 .cta-primary:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 32px rgba(212, 175, 55, 0.5);
 }
 
 .cta-secondary {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .cta-secondary:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #d4af37;
   transform: translateY(-4px);
-}
-
-.btn-icon {
-  font-size: 20px;
 }
 
 .btn-arrow {
   transition: transform 0.3s;
+  font-size: 20px;
 }
 
 .cta-btn:hover .btn-arrow {
-  transform: translateX(4px);
+  transform: translateX(5px);
 }
 
+/* Hero Stats */
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 32px;
-  max-width: 900px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 24px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
 .stat-box {
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.15);
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
 }
 
 .stat-box:hover {
   transform: translateY(-4px);
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.3);
 }
 
 .stat-number {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 900;
   margin-bottom: 8px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  color: #d4af37;
+  text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
 }
 
 .stat-label {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  font-weight: 500;
+  font-size: 0.95rem;
+  opacity: 0.85;
+  font-weight: 600;
+  color: #cbd5e1;
 }
 
+/* Scroll Indicator */
 .scroll-indicator {
   position: absolute;
   bottom: 40px;
@@ -552,9 +609,9 @@ export default {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: white;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
-  opacity: 0.8;
+  font-weight: 600;
   animation: bounce 2s infinite;
 }
 
@@ -581,8 +638,8 @@ export default {
   }
 }
 
-/* Animations */
-@keyframes fade-slide-up {
+/* Fade In Animation */
+@keyframes fade-in {
   from {
     opacity: 0;
     transform: translateY(30px);
@@ -593,51 +650,58 @@ export default {
   }
 }
 
-.fade-slide-up {
-  animation: fade-slide-up 0.8s ease-out forwards;
+.fade-in {
+  animation: fade-in 0.8s ease-out forwards;
   opacity: 0;
 }
 
 /* Features Section */
 .features-section {
   padding: 120px 20px;
-  background: white;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e0e7ff 100%);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .section-header {
   text-align: center;
   max-width: 700px;
-  margin: 0 auto 60px;
+  margin: 0 auto 64px;
 }
 
 .section-badge {
   display: inline-block;
-  padding: 6px 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #d4af37, #b8960f);
   color: white;
   border-radius: 50px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
 }
 
 .section-title {
-  font-size: 2.5rem;
-  margin-bottom: 16px;
-  color: var(--gray-900);
+  font-size: 2.75rem;
+  margin-bottom: 20px;
+  color: #1e293b;
+  font-weight: 900;
 }
 
 .section-subtitle {
-  font-size: 1.1rem;
-  color: var(--gray-600);
+  font-size: 1.15rem;
+  color: #64748b;
   line-height: 1.7;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 32px;
 }
 
@@ -645,7 +709,7 @@ export default {
   padding: 40px 32px;
   background: white;
   border-radius: 20px;
-  border: 2px solid var(--gray-200);
+  border: 2px solid #e2e8f0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   position: relative;
@@ -659,7 +723,7 @@ export default {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: linear-gradient(90deg, #d4af37, #b8960f);
   transform: scaleX(0);
   transition: transform 0.4s;
 }
@@ -671,7 +735,7 @@ export default {
 .feature-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  border-color: #d4af37;
 }
 
 .feature-icon-wrapper {
@@ -694,8 +758,8 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  opacity: 0.1;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+  opacity: 0.5;
   border-radius: 20px;
   transform: rotate(45deg);
   transition: transform 0.4s;
@@ -706,35 +770,37 @@ export default {
 }
 
 .feature-card h3 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   margin-bottom: 12px;
-  color: var(--gray-900);
+  color: #1e293b;
+  font-weight: 800;
 }
 
 .feature-card p {
-  color: var(--gray-600);
+  color: #64748b;
   line-height: 1.7;
   margin-bottom: 16px;
 }
 
 .feature-link {
-  color: #667eea;
-  font-weight: 600;
+  color: #d4af37;
+  font-weight: 700;
   font-size: 14px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   transition: gap 0.3s;
 }
 
 .feature-card:hover .feature-link {
-  gap: 8px;
+  gap: 10px;
 }
 
 /* Workflow Section */
 .workflow-section {
   padding: 120px 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f35 100%);
+  color: white;
 }
 
 .workflow-timeline {
@@ -753,9 +819,9 @@ export default {
 
 .timeline-marker {
   position: relative;
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 20px;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 24px;
 }
 
 .marker-number {
@@ -763,15 +829,15 @@ export default {
   z-index: 2;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #d4af37, #b8960f);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 900;
-  color: white;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  color: #0a0f1e;
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
 }
 
 .marker-pulse {
@@ -781,7 +847,7 @@ export default {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 2px solid #667eea;
+  border: 3px solid #d4af37;
   animation: pulse-ring 2s infinite;
 }
 
@@ -797,43 +863,53 @@ export default {
 }
 
 .timeline-content {
-  background: white;
-  padding: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 28px;
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+}
+
+.timeline-content:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.3);
+  transform: translateY(-4px);
 }
 
 .timeline-icon {
-  font-size: 40px;
+  font-size: 48px;
   margin-bottom: 16px;
+  filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.3));
 }
 
 .timeline-content h4 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   margin-bottom: 12px;
-  color: var(--gray-900);
+  color: #d4af37;
+  font-weight: 800;
 }
 
 .timeline-content p {
   font-size: 14px;
-  color: var(--gray-600);
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.6;
 }
 
 .timeline-connector {
   position: absolute;
-  top: 40px;
-  left: calc(50% + 40px);
-  width: calc(100% - 40px);
-  height: 2px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  top: 45px;
+  left: calc(50% + 45px);
+  width: calc(100% - 90px);
+  height: 3px;
+  background: linear-gradient(90deg, #d4af37, transparent);
   z-index: 1;
 }
 
 /* Benefits Section */
 .benefits-section {
   padding: 120px 20px;
-  background: white;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e0e7ff 100%);
 }
 
 .benefits-grid {
@@ -852,37 +928,42 @@ export default {
 
 .benefit-item {
   display: flex;
-  gap: 16px;
-  padding: 20px;
-  background: var(--gray-50);
+  gap: 20px;
+  padding: 24px;
+  background: white;
   border-radius: 16px;
   border: 2px solid transparent;
   transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .benefit-item:hover {
-  border-color: #667eea;
+  border-color: #d4af37;
   transform: translateX(8px);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.2);
 }
 
 .benefit-icon {
-  font-size: 32px;
+  font-size: 36px;
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(212, 175, 55, 0.3));
 }
 
 .benefit-item h4 {
-  font-size: 1.1rem;
-  margin-bottom: 6px;
-  color: var(--gray-900);
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  color: #1e293b;
+  font-weight: 800;
 }
 
 .benefit-item p {
   font-size: 14px;
-  color: var(--gray-600);
+  color: #64748b;
   line-height: 1.6;
   margin: 0;
 }
 
+/* Visual Cards */
 .benefit-visual {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -892,10 +973,10 @@ export default {
 
 .visual-card {
   background: white;
-  padding: 20px;
+  padding: 24px;
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border: 2px solid var(--gray-200);
+  border: 2px solid #e2e8f0;
 }
 
 .card-1 {
@@ -927,26 +1008,27 @@ export default {
 .card-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .card-icon {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .card-chart {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  height: 80px;
+  gap: 10px;
+  height: 100px;
 }
 
 .chart-bar {
   flex: 1;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 4px;
+  background: linear-gradient(135deg, #d4af37, #b8960f);
+  border-radius: 8px 8px 0 0;
   animation: bar-grow 1s ease-out;
 }
 
@@ -961,21 +1043,21 @@ export default {
 
 .progress-ring {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   margin: 0 auto;
 }
 
 .ring-bg {
   fill: none;
-  stroke: var(--gray-200);
-  stroke-width: 8;
+  stroke: #e2e8f0;
+  stroke-width: 10;
 }
 
 .ring-progress {
   fill: none;
-  stroke: url(#gradient);
-  stroke-width: 8;
+  stroke: #d4af37;
+  stroke-width: 10;
   stroke-linecap: round;
   stroke-dasharray: 251;
   stroke-dashoffset: 63;
@@ -993,21 +1075,20 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 900;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #d4af37;
 }
 
 .status-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 10px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .status-success {
@@ -1045,40 +1126,43 @@ export default {
 /* Final CTA */
 .final-cta-section {
   padding: 120px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f35 100%);
   color: white;
   text-align: center;
 }
 
 .cta-content h2 {
-  font-size: 3rem;
-  margin-bottom: 20px;
+  font-size: 3.5rem;
+  margin-bottom: 24px;
   color: white;
+  font-weight: 900;
 }
 
 .cta-content > p {
-  font-size: 1.2rem;
-  margin-bottom: 40px;
-  opacity: 0.95;
+  font-size: 1.25rem;
+  margin-bottom: 48px;
+  opacity: 0.9;
+  color: #cbd5e1;
 }
 
 .cta-buttons {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .cta-large {
-  padding: 20px 40px;
+  padding: 22px 44px;
   font-size: 18px;
 }
 
 .cta-note {
-  font-size: 14px;
-  opacity: 0.8;
+  font-size: 15px;
+  opacity: 0.7;
   margin: 0;
+  color: #94a3b8;
 }
 
 /* Responsive */
@@ -1104,7 +1188,11 @@ export default {
   }
   
   .cta-content h2 {
-    font-size: 2rem;
+    font-size: 2.25rem;
+  }
+  
+  .hero-stats {
+    grid-template-columns: 1fr 1fr;
   }
 }
 </style>

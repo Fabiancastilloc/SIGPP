@@ -1,16 +1,36 @@
+// frontend/src/api/expenses.js
 import apiClient from './axios-config'
 
 const expensesApi = {
+  // Obtener gastos de un proyecto
   getExpenses: (projectId) => {
-    return apiClient.get('/expenses', { params: { project_id: projectId } })
+    return apiClient.get(`/projects/${projectId}/expenses`)
   },
   
-  createExpense: (expenseData) => {
-    return apiClient.post('/expenses', expenseData)
+  // Obtener gasto específico
+  getExpenseById: (projectId, expenseId) => {
+    return apiClient.get(`/projects/${projectId}/expenses/${expenseId}`)
   },
   
-  approveExpense: (expenseId, approval) => {
-    return apiClient.post(`/expenses/${expenseId}/approve`, approval)
+  // Crear gasto con archivo
+  createExpense: (projectId, formData) => {
+    return apiClient.post(`/projects/${projectId}/expenses`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+  
+  // Eliminar gasto
+  deleteExpense: (projectId, expenseId) => {
+    return apiClient.delete(`/projects/${projectId}/expenses/${expenseId}`)
+  },
+  
+  // Descargar soporte
+  downloadSoporte: (filename) => {
+    return apiClient.get(`/uploads/${filename}`, {
+      responseType: 'blob'
+    })
   }
 }
 

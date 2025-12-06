@@ -181,6 +181,25 @@ const routes = [
     component: () => import('../views/Student/ProjectDetail.vue'),
     meta: { requiresAuth: true, role: 'superusuario' }
   },
+
+  {
+  path: '/admin/project/:id',
+  name: 'AdminProjectDetail',
+  component: () => import('../views/Student/ProjectDetail.vue'),
+  meta: { requiresAuth: true, role: 'superusuario' }
+},
+{
+  path: '/admin/project/:id/expenses',
+  name: 'AdminProjectExpenses',
+  component: () => import('../views/Admin/AdminProjectExpenses.vue'),
+  meta: { requiresAuth: true, role: 'superusuario' }
+},
+{
+  path: '/admin/project/:id/history',
+  name: 'AdminProjectHistory',
+  component: () => import('../views/Admin/AdminProjectHistory.vue'),
+  meta: { requiresAuth: true, role: 'superusuario' }
+},
   
   // ============================================
   // ❌ RUTA 404

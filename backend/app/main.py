@@ -5,6 +5,8 @@ from .config import settings
 from .database import init_db
 from .routers import auth, projects, expenses, catalogs
 import os
+from .routers import admin_users
+from .routers import auth, projects, expenses, catalogs, members  # ← AGREGAR members
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
@@ -52,6 +54,8 @@ app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(catalogs.router, prefix=settings.API_V1_STR)
 app.include_router(projects.router, prefix=settings.API_V1_STR)
 app.include_router(expenses.router, prefix=settings.API_V1_STR)
+app.include_router(admin_users.router, prefix=settings.API_V1_STR)
+app.include_router(members.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
